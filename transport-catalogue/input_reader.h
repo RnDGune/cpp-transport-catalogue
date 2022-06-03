@@ -22,9 +22,9 @@ namespace detail
 
 namespace transport_catalogue::input_reader
 {
-	void ProcessInput(TransportCatalogue&);     
+	void ProcessInput(TransportCatalogue&, std::istream&);     
 	void ProcessInputQueries(TransportCatalogue&, std::vector<InputQuery>&); 
-	Stop ProcessQueryAddStop(std::string&);           
-	void ProcessQueryAddStopsDistance(TransportCatalogue&, std::string&);      
-	Route ProcessQueryAddRoute(TransportCatalogue&, std::string&);             
+	Stop ProcessQueryAddStop(const std::string&);
+	void ProcessQueryAddStopsDistance(TransportCatalogue&, const std::string&);
+	Route ProcessQueryAddRoute(TransportCatalogue&, const std::string&);             
 }

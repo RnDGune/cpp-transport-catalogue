@@ -181,4 +181,11 @@ namespace transport_catalogue
 		}
 		return result;
 	}
+
+std::size_t PairPointersHasher::operator()(const std::pair<const Stop*, const Stop*> pair_of_pointers) const noexcept
+	{
+		auto ptr1 = static_cast<const void*>(pair_of_pointers.first);
+		auto ptr2 = static_cast<const void*>(pair_of_pointers.second);
+		return hasher_(ptr1) * 37 + hasher_(ptr2);
+	}
 }

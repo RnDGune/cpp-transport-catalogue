@@ -84,12 +84,8 @@ namespace transport_catalogue
 	class PairPointersHasher
 	{
 	public:
-		std::size_t operator()(const std::pair<const Stop*, const Stop*> pair_of_pointers) const noexcept
-		{
-			auto ptr1 = static_cast<const void*>(pair_of_pointers.first);
-			auto ptr2 = static_cast<const void*>(pair_of_pointers.second);
-			return hasher_(ptr1) * 37 + hasher_(ptr2);
-		}
+		std::size_t operator()(const std::pair<const Stop*, const Stop*>) const noexcept;
+		
 	private:
 		std::hash<const void*> hasher_;
 	};

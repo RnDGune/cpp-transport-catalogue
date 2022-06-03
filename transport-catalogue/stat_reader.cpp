@@ -41,14 +41,14 @@ namespace transport_catalogue::stat_reader
 	}
 
 
-	void ProcessRequests(TransportCatalogue& tc)
+	std::ostream& ProcessRequests(TransportCatalogue& tc,std::ostream& os, std::istream& is)
 	{
 		std::string line;
-		std::getline(std::cin, line);
+		std::getline(is, line);
 		size_t request_num = static_cast<size_t>(std::stoul(line));
 		for (size_t i = 0; i < request_num; ++i)
 		{
-			std::getline(std::cin, line, '\n');
+			std::getline(is, line, '\n');
 			auto tmp = detail::Split(line, ' ');
 			tmp.first = detail::TrimString(tmp.first);
 			tmp.second = detail::TrimString(tmp.second);
@@ -71,12 +71,13 @@ namespace transport_catalogue::stat_reader
 				query.type = RequestQueryType::NoOp;
 			}
 			query.params = tmp.second;
-			ExecuteRequest(tc, query);
+			ExecuteRequest(tc, query, os);
 		}
+		return os;
 	}
 
 
-	void ExecuteRequest(TransportCatalogue& tc, RequestQuery& query)
+	std::ostream& ExecuteRequest(TransportCatalogue& tc, RequestQuery& query, std::ostream& os)
 	{
 		using namespace std::literals;
 		switch (query.type)
@@ -88,11 +89,11 @@ namespace transport_catalogue::stat_reader
 			{
 				std::stringstream ss;
 				ss << result.r_ptr;
-				std::cout << ss.str() << std::endl;
+				os << ss.str() << std::endl;
 			}
 			else
 			{
-				std::cout << "Bus "s + std::string(query.params) + ": not found"s << std::endl;
+				os << "Bus "s + std::string(query.params) + ": not found"s << std::endl;
 				
 			}
 		}
@@ -109,17 +110,17 @@ namespace transport_catalogue::stat_reader
 				{
 					ss << " "s << element;
 				}
-				std::cout << "Stop "s + std::string(query.params) + ": buses"s + ss.str() << std::endl;
+				os << "Stop "s + std::string(query.params) + ": buses"s + ss.str() << std::endl;
 			}
 			break;
 			case RequestResultType::NoBuses:
-				std::cout << "Stop "s + std::string(query.params) + ": no buses"s << std::endl;
+				os << "Stop "s + std::string(query.params) + ": no buses"s << std::endl;
 				break;
 			case RequestResultType::StopNotExists:
-				std::cout << "Stop "s + std::string(query.params) + ": not found"s << std::endl;
+				os << "Stop "s + std::string(query.params) + ": not found"s << std::endl;
 				break;
 			case RequestResultType::RouteNotExists:
-				std::cout << "Stop "s + std::string(query.params) + ": no buses"s << std::endl;
+				os << "Stop "s + std::string(query.params) + ": no buses"s << std::endl;
 				break;
 			}
 		}
@@ -127,5 +128,6 @@ namespace transport_catalogue::stat_reader
 		case RequestQueryType::NoOp:
 			break;
 		}
+		return os;
 	}
 }

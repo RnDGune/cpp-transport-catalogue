@@ -54,18 +54,18 @@ namespace detail
 namespace transport_catalogue::input_reader
 {
 
-	void ProcessInput(TransportCatalogue& tc)
+	void ProcessInput(TransportCatalogue& tc,std::istream& is)
 	{
 		std::vector<InputQuery> queries;
 		std::string line;
-		std::getline(std::cin, line);
+		std::getline(is, line);
 		size_t request_num = static_cast<size_t>(std::stoul(line));
 
 		for (size_t i = 0; i < request_num; ++i)
 		{
 			using namespace std::literals;
 
-			std::getline(std::cin, line, '\n');
+			std::getline(is, line, '\n');
 			auto tmp = detail::Split(line, ' ');
 			tmp.first = detail::TrimString(tmp.first);
 			tmp.second = detail::TrimString(tmp.second);
@@ -151,7 +151,7 @@ namespace transport_catalogue::input_reader
 	}
 
 
-	Stop ProcessQueryAddStop(std::string& query)
+	Stop ProcessQueryAddStop(const std::string& query)
 	{
 		Stop new_stop;
 		auto tmp = detail::Split(query, ':');
@@ -167,7 +167,7 @@ namespace transport_catalogue::input_reader
 	}
 
 
-	void ProcessQueryAddStopsDistance(TransportCatalogue& tc, std::string& query)
+	void ProcessQueryAddStopsDistance(TransportCatalogue& tc, const std::string& query)
 	{
 		auto tmp = detail::Split(query, ':');
 		tmp.first = detail::TrimString(tmp.first);
@@ -200,7 +200,7 @@ namespace transport_catalogue::input_reader
 	}
 
 
-	Route ProcessQueryAddRoute(TransportCatalogue& tc, std::string& query)
+	Route ProcessQueryAddRoute(TransportCatalogue& tc, const std::string& query)
 	{
 		Route new_route;
 		auto tmp = detail::Split(query, ':');
