@@ -12,9 +12,14 @@
 #include <algorithm>       
 #include <utility>         
 #include <cctype>        
-#include <functional>      
+#include <functional>  
+#include <map>
+#include <vector>
+#include <set>
 
-#include "geo.h"           
+
+#include "geo.h"     
+#include "domain.h"   
 
 
 // напишите решение с нуля
@@ -22,74 +27,22 @@
 
 namespace transport_catalogue
 {
-
-
-	enum class InputQueryType
+	struct StopStat
 	{
-		NoOp,            
-		AddStop,         
-		AddRoute,        
-		AddStopsDistance,
-	};
-	struct InputQuery
-	{
-		InputQueryType type = InputQueryType::NoOp;
-		std::string query;
+		explicit StopStat(std::string_view, std::set<std::string_view>&);
+		std::string_view name;
+		std::set<std::string_view> buses;  
 	};
 
-	enum class RequestQueryType
+	struct RouteStat
 	{
-		NoOp,            
-		GetRouteByName,  
-		GetBusesForStop, 
+		explicit RouteStat(size_t, size_t, int64_t, double, std::string_view);
+		size_t stops_on_route = 0;
+		size_t unique_stops = 0;
+		int64_t meters_route_length = 0;
+		double curvature = 0L;
+		std::string name;
 	};
-	struct RequestQuery
-	{
-		RequestQueryType type{ RequestQueryType::NoOp };
-		std::string_view params;
-	};
-
-
-	
-	struct Stop
-	{
-	public:
-		std::string name;                  
-		Coordinates coords{ 0L,0L };   
-	};
-
-	struct Route
-	{
-		std::string bus_number;            
-		std::vector<const Stop*> stops;    
-		size_t unique_stops_qty = 0U;      
-		double geo_route_length = 0L;      
-		size_t meters_route_length = 0U;   
-		double curvature = 0L;             
-	};
-	enum class RequestResultType
-	{
-		Ok,
-		NoBuses,
-		StopNotExists,
-		RouteNotExists,
-	};
-	struct RequestResult
-	{
-		RequestResultType code = RequestResultType::Ok;   
-		std::vector<std::string> vector_str;              
-		const Stop* s_ptr = nullptr;               
-		const Route* r_ptr = nullptr;             
-	};
-	class PairPointersHasher
-	{
-	public:
-		std::size_t operator()(const std::pair<const Stop*, const Stop*>) const noexcept;
-		
-	private:
-		std::hash<const void*> hasher_;
-	};
-
 
 	class TransportCatalogue
 	{
@@ -100,24 +53,30 @@ namespace transport_catalogue
 		void AddStop(Stop&&);              
 		void AddRoute(Route&&);            
 		void AddDistance(const Stop*, const Stop*, size_t);    
+
 		size_t GetDistance(const Stop*, const Stop*);          
 		size_t GetDistanceDirectly(const Stop*, const Stop*);  
 
-		const Stop* GetStopByName(std::string_view);    
-		Route* GetRouteByName(std::string_view);        
+		Stop* GetStopByName(std::string_view) const;    
+		Route* GetRouteByName(std::string_view) const;        
 
-		RequestResult GetRouteInfo(std::string_view);         
-		RequestResult GetBusesForStop(std::string_view);      
+		RouteStat* GetRouteInfo(std::string_view) const;         
+		StopStat* GetBusesForStop(const std::string_view)const;      
+
+		void GetAllRoutes(std::map<const std::string, RendererData>&) const;
 
 	private:
-		std::deque<Stop> all_stops_data_;                                    
-		std::unordered_map<std::string_view, const Stop*> all_stops_map_;     
-		std::deque<Route> all_buses_data_;                                    
-		std::unordered_map<std::string_view, Route*> all_buses_map_;          
-		std::unordered_map<std::pair<const Stop*, const Stop*>, size_t, PairPointersHasher> distances_map_;    
+
 		std::string_view GetStopName(const Stop* stop_ptr);
 		std::string_view GetStopName(const Stop stop);
 		std::string_view GetBusName(const Route* route_ptr);
 		std::string_view GetBusName(const Route route);
+
+		std::deque<Stop> all_stops_data_;                                    
+		std::unordered_map<std::string_view, Stop*> all_stops_map_;     
+		std::deque<Route> all_buses_data_;                                    
+		std::unordered_map<std::string_view, Route*> all_buses_map_;          
+		std::unordered_map<std::pair<const Stop*, const Stop*>, size_t, PairPointersHasher> distances_map_;    
+
 	};
 }

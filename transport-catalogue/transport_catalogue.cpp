@@ -3,6 +3,20 @@
 
 namespace transport_catalogue
 {
+	StopStat::StopStat(std::string_view stop_name, std::set<std::string_view>& buses):
+		name(stop_name), 
+		buses(buses)
+	{
+	}
+
+	RouteStat::RouteStat(size_t stops, size_t unique_stops, int64_t meters_length, double curvature, std::string_view name):
+		stops_on_route(stops),
+		unique_stops(unique_stops),
+		meters_route_length(meters_length),
+		curvature(curvature),
+		name(name)
+	{
+	}
 
 	TransportCatalogue::TransportCatalogue()
 	{}
@@ -21,14 +35,23 @@ namespace transport_catalogue
 
 	void TransportCatalogue::AddRoute(Route&& route)
 	{
-		if (all_buses_map_.count(route.bus_number) == 0)
+		if (all_buses_map_.count(route.route_name) == 0)
 		{
 			auto& ref = all_buses_data_.emplace_back(std::move(route));
-			all_buses_map_.insert({ std::string_view(ref.bus_number), &ref });
-			std::vector<const Stop*> tmp = ref.stops;
+			all_buses_map_.insert({ std::string_view(ref.route_name), &ref });
+			std::vector< Stop*> tmp = ref.stops;
 			std::sort(tmp.begin(), tmp.end());
 			auto last = std::unique(tmp.begin(), tmp.end());
 			ref.unique_stops_qty = (last != tmp.end() ? std::distance(tmp.begin(), last) : tmp.size());
+
+			if (!ref.is_circular)
+			{
+				for (int i = ref.stops.size() - 2; i >= 0; --i)
+				{
+					ref.stops.push_back(ref.stops[i]);
+				}
+			}
+
 			int stops_num = static_cast<int>(ref.stops.size());
 			if (stops_num > 1)
 			{
@@ -36,7 +59,7 @@ namespace transport_catalogue
 				ref.meters_route_length = 0U;
 				for (int i = 0; i < stops_num - 1; ++i)
 				{
-					ref.geo_route_length += ComputeDistance(ref.stops[i]->coords, ref.stops[i + 1]->coords);
+					ref.geo_route_length += geo::ComputeDistance(ref.stops[i]->coordinates, ref.stops[i + 1]->coordinates);
 					ref.meters_route_length += GetDistance(ref.stops[i], ref.stops[i + 1]);
 				}
 				ref.curvature = ref.meters_route_length / ref.geo_route_length;
@@ -89,16 +112,16 @@ namespace transport_catalogue
 
 	std::string_view TransportCatalogue::GetBusName(const Route* route_ptr)
 	{
-		return std::string_view(route_ptr->bus_number);
+		return std::string_view(route_ptr->route_name);
 	}
 
 	std::string_view TransportCatalogue::GetBusName(const Route route)
 	{
-		return std::string_view(route.bus_number);
+		return std::string_view(route.route_name);
 	}
 
 
-	const Stop* TransportCatalogue::GetStopByName(std::string_view stop_name)
+	Stop* TransportCatalogue::GetStopByName(const std::string_view stop_name)const
 	{
 		if (all_stops_map_.count(stop_name) == 0)
 		{
@@ -110,7 +133,7 @@ namespace transport_catalogue
 		}
 	}
 
-	Route* TransportCatalogue::GetRouteByName(std::string_view bus_name)
+	Route* TransportCatalogue::GetRouteByName(const std::string_view bus_name) const
 	{
 		if (all_buses_map_.count(bus_name) == 0)
 		{
@@ -123,69 +146,70 @@ namespace transport_catalogue
 	}
 
 
-	RequestResult TransportCatalogue::GetRouteInfo(std::string_view bus_name)
+	RouteStat* TransportCatalogue::GetRouteInfo(std::string_view route_name)const
 	{
-		RequestResult result;
-		result.r_ptr = GetRouteByName(bus_name);
+		Route* ptr = GetRouteByName(route_name);
 
-		if (result.r_ptr != nullptr)
+		if (ptr == nullptr)
 		{
-			result.code = RequestResultType::Ok;
-		}
-		else
-		{
-			result.code = RequestResultType::RouteNotExists;
+			return nullptr;
 		}
 
-		return result;
+		return new RouteStat(ptr->stops.size(),
+			ptr->unique_stops_qty,
+			ptr->meters_route_length,
+			ptr->curvature,
+			ptr->route_name);
 	}
 
 
-	RequestResult TransportCatalogue::GetBusesForStop(std::string_view stop_name)
-	{
-		RequestResult result;
-		result.s_ptr = GetStopByName(stop_name);
+	StopStat* TransportCatalogue::GetBusesForStop(const std::string_view stop_name) const
+	{	
+		Stop* ptr = GetStopByName(stop_name);
 
-		if (result.s_ptr != nullptr)
+		if (ptr == nullptr)
 		{
-			std::vector<std::string_view> found_buses_sv;   
-			for (auto& bus : all_buses_map_)
-			{
-				auto tmp = std::find_if(bus.second->stops.begin(), bus.second->stops.end(),
-					[stop_name](const Stop* curr_stop)
-					{
-						return (curr_stop->name == stop_name);
-					});
-				if (tmp != bus.second->stops.end())
+			return nullptr;
+		}
+
+
+		std::set<std::string_view> found_buses_sv; 
+		for (const auto& bus : all_buses_map_)
+		{
+			auto tmp = std::find_if(bus.second->stops.begin(), bus.second->stops.end(),
+				[stop_name](Stop* curr_stop)
 				{
-					found_buses_sv.push_back(bus.second->bus_number);
-				}
-			}
-			if (found_buses_sv.size() > 0)
+					return (curr_stop->name == stop_name);
+				});
+			if (tmp != bus.second->stops.end())
 			{
-				result.code = RequestResultType::Ok;
-				std::sort(found_buses_sv.begin(), found_buses_sv.end());
-				for (auto& element : found_buses_sv)
-				{
-					result.vector_str.emplace_back(std::string(element));
-				}
-			}
-			else
-			{
-				result.code = RequestResultType::NoBuses;
+				found_buses_sv.insert(bus.second->route_name);
 			}
 		}
-		else
-		{
-			result.code = RequestResultType::StopNotExists;
-		}
-		return result;
+		return new StopStat(stop_name, found_buses_sv);
 	}
 
-std::size_t PairPointersHasher::operator()(const std::pair<const Stop*, const Stop*> pair_of_pointers) const noexcept
+	void TransportCatalogue::GetAllRoutes(std::map<const std::string, RendererData>& all_routes) const
 	{
-		auto ptr1 = static_cast<const void*>(pair_of_pointers.first);
-		auto ptr2 = static_cast<const void*>(pair_of_pointers.second);
-		return hasher_(ptr1) * 37 + hasher_(ptr2);
+
+		for (const auto& route : all_buses_data_)
+		{
+			if (route.stops.size() > 0)
+			{
+				RendererData item;
+				for (Stop* stop : route.stops)
+				{
+					item.stop_coords.push_back(stop->coordinates);
+					item.stop_names.push_back(stop->name);
+				}
+				item.is_circular = route.is_circular;
+
+				all_routes.emplace(make_pair(route.route_name, item));
+			}
+		}
+
+		return;
 	}
+
+
 }
