@@ -16,6 +16,8 @@ namespace json {
         {'f', '\f'},
         {'t', '\t'}
                      };
+        
+
 
         Node LoadNode(istream& input);
 
@@ -250,6 +252,11 @@ namespace json {
 
     }  // namespace
 
+   Node::Node() :
+        json_node_(nullptr)
+    {
+    }
+
     bool Node::IsNull() const
     {
         return std::holds_alternative<std::nullptr_t>(json_node_);
@@ -407,6 +414,84 @@ namespace json {
     void Print(const Document& doc, std::ostream& output)
     {
         std::visit(OstreamSolutionPrinter{ output }, doc.GetRoot().GetValue());
+    }
+
+    void OstreamSolutionPrinter::operator()(std::nullptr_t) const
+    {
+        using namespace std::literals;
+        out << "null"sv;
+    }
+    void OstreamSolutionPrinter::operator()(Array array) const
+    {
+        using namespace std::literals;
+        out << "["sv << std::endl;
+        bool print_comma = false;
+        for (const auto& elem : array)
+        {
+            if (print_comma)
+            {
+                out << ", "sv << std::endl;
+            }
+            std::visit(OstreamSolutionPrinter{ out }, elem.GetValue());
+            print_comma = true;
+        }
+        out << std::endl << "]"sv;
+    }
+    void OstreamSolutionPrinter::operator()(Dict map) const
+    {
+        using namespace std::literals;
+        out << "{"sv << std::endl;
+        bool print_comma = false;
+        for (const auto& elem : map)
+        {
+            if (print_comma)
+            {
+                out << ", "sv << std::endl;
+            }
+            out << "\""sv << elem.first << "\": "sv;
+            std::visit(OstreamSolutionPrinter{ out }, elem.second.GetValue());
+            print_comma = true;
+        }
+        out << std::endl << "}"sv;
+    }
+    void OstreamSolutionPrinter::operator()(bool value) const
+    {
+        using namespace std::literals;
+        if (value)
+        {
+            out << "true"sv;
+        }
+        else
+        {
+            out << "false"sv;
+        }
+    }
+    void OstreamSolutionPrinter::operator()(int num) const
+    {
+        out << num;
+    }
+    void OstreamSolutionPrinter::operator()(double num) const
+    {
+        out << num;
+    }
+    void OstreamSolutionPrinter::operator()(std::string line) const
+    {
+        using namespace std::literals;
+        std::istringstream strm(line);
+        out << "\""sv;
+        char ch;
+        while (strm.get(ch))
+        {
+            if (esc_symbols_save.find(ch) != esc_symbols_save.end())
+            {
+                out << esc_symbols_save[ch];
+            }
+            else
+            {
+                out << ch;
+            }
+        }
+        out << "\""sv;
     }
 
 }  // namespace json

@@ -24,10 +24,7 @@ namespace json {
     class Node {
     public:
         /* Реализуйте Node, используя std::variant */
-        Node() :
-            json_node_(nullptr)
-        {
-        }
+       Node();
        template <typename T>
        Node(T value) :
            json_node_(std::move(value))
@@ -84,83 +81,13 @@ namespace json {
     struct OstreamSolutionPrinter
     {
         std::ostream& out;
-
-        void operator()(std::nullptr_t) const
-        {
-            using namespace std::literals;
-            out << "null"sv;  
-        }
-        void operator()(Array array) const
-        {
-            using namespace std::literals;
-            out << "["sv << std::endl;
-            bool print_comma = false;
-            for (const auto& elem : array)
-            {
-                if (print_comma)
-                {
-                    out << ", "sv << std::endl;
-                }
-                std::visit(OstreamSolutionPrinter{ out }, elem.GetValue());
-                print_comma = true;
-            }
-            out << std::endl << "]"sv;
-        }
-        void operator()(Dict map) const
-        {
-            using namespace std::literals;
-            out << "{"sv << std::endl;
-            bool print_comma = false;
-            for (const auto& elem : map)
-            {
-                if (print_comma)
-                {
-                    out << ", "sv << std::endl;
-                }
-                out << "\""sv << elem.first << "\": "sv;
-                std::visit(OstreamSolutionPrinter{ out }, elem.second.GetValue());
-                print_comma = true;
-            }
-            out << std::endl << "}"sv;
-        }
-        void operator()(bool value) const
-        {
-            using namespace std::literals;
-            if (value)
-            {
-                out << "true"sv; 
-            }
-            else
-            {
-                out << "false"sv;  
-            }
-        }
-        void operator()(int num) const
-        {
-            out << num; 
-        }
-        void operator()(double num) const
-        {
-            out << num;  
-        }
-        void operator()(std::string line) const
-        {
-            using namespace std::literals;
-            std::istringstream strm(line);
-            out << "\""sv;
-            char ch;
-            while (strm.get(ch))
-            {
-                if (esc_symbols_save.find(ch) != esc_symbols_save.end())
-                {
-                    out << esc_symbols_save[ch];
-                }
-                else
-                {
-                    out << ch;
-                }
-            }
-            out << "\""sv;
-        }
+        void operator()(std::nullptr_t) const;
+        void operator()(Array array) const;
+        void operator()(Dict map) const;
+        void operator()(bool value) const;
+        void operator()(int num) const;
+        void operator()(double num) const;
+        void operator()(std::string line) const;
+        
     };
 }  // namespace json
