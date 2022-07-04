@@ -1,15 +1,17 @@
 #pragma once
 
 #include <iostream>                 
-#include <sstream>   
+#include <sstream>  
+#include <vector> 
 
 #include "request_handler.h"        
 #include "json.h"
 #include "map_renderer.h"
+#include "json_builder.h"
 
 namespace json_reader 
 {
-	void ProcessJSON(transport_catalogue::TransportCatalogue&, transport_catalogue::RequestHandler&,
+	void ProcessJSON(transport_catalogue::TransportCatalogue&,
 		map_renderer::MapRenderer&, std::istream&, std::ostream&);
 
 	void AddToDataBase(transport_catalogue::TransportCatalogue&, const json::Array&);
@@ -24,7 +26,8 @@ namespace json_reader
 
 	void ReadRendererSettings(map_renderer::MapRenderer&, const json::Dict&);
 
-	void ProcessQueriesJSON(transport_catalogue::RequestHandler&, const json::Array&, std::ostream&);
+	//void ProcessQueriesJSON(transport_catalogue::RequestHandler&, const json::Array&, std::ostream&);
+	void ParseJSONQueries(transport_catalogue::RequestHandler&, const json::Array&, std::ostream&);
 
 	const json::Node ProcessStopQuery(transport_catalogue::RequestHandler&, const json::Dict&);
 	
