@@ -12,7 +12,7 @@ namespace json
     соответствующее этому ключу значение с помощью метода Value или начинать
     его определение с помощью StartDict или StartArray.
     */
-    KeyContext Builder::Key(std::string key)
+    KeyContext Builder::Key(const std::string& key)
     {
         // Если это первый элемент в документе (root еще пуст)
         if (root_ == nullptr)
@@ -33,7 +33,7 @@ namespace json
             if (!key_opened_)
             {
                 // Запоминаем ключ
-                key_.swap(key);
+                key_=key;
 
                 // Добавляем новый ключ с пустым Value в словарь
                 const_cast<Dict&>(parent_container->AsDict())[key_] = Node();

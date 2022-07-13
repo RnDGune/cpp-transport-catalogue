@@ -13,10 +13,11 @@
 
 int main()
 {
+    json_reader::JSONReader JSON_reader;
     transport_catalogue::TransportCatalogue tc;
     map_renderer::MapRenderer mr;
    // transport_catalogue::RequestHandler rh(tc, mr);
-    json_reader::ProcessJSON(tc, mr, std::cin, std::cout);
+    JSON_reader.ProcessJSON(tc, mr, std::cin, std::cout);
 
 }
 

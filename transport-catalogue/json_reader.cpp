@@ -2,7 +2,7 @@
 
 namespace json_reader
 {
-	void ProcessJSON(transport_catalogue::TransportCatalogue& tc,
+	void JSONReader::ProcessJSON(transport_catalogue::TransportCatalogue& tc,
 		map_renderer::MapRenderer& mr, std::istream& input, std::ostream& output)
 	{
 		using namespace std::literals;
@@ -29,7 +29,7 @@ namespace json_reader
 		}
 	}
 
-	void AddToDataBase(transport_catalogue::TransportCatalogue& tc, const json::Array& j_arr)
+	void JSONReader::AddToDataBase(transport_catalogue::TransportCatalogue& tc, const json::Array& j_arr)
 	{
 		using namespace std::literals;
 		static std::vector<std::string> stages = { "Stop"s, "Stop"s, "Bus"s };
@@ -61,7 +61,7 @@ namespace json_reader
 		}
 	}
 
-	void AddStopData(transport_catalogue::TransportCatalogue& tc, const json::Dict& j_dict)
+	void JSONReader::AddStopData(transport_catalogue::TransportCatalogue& tc, const json::Dict& j_dict)
 	{
 		using namespace std::literals;
 
@@ -71,7 +71,7 @@ namespace json_reader
 		tc.AddStop(transport_catalogue::Stop{ stop_name, latitude, longitude });
 	}
 
-	void AddStopDistance(transport_catalogue::TransportCatalogue& tc, const json::Dict& j_dict)
+	void JSONReader::AddStopDistance(transport_catalogue::TransportCatalogue& tc, const json::Dict& j_dict)
 	{
 		using namespace std::literals;
 
@@ -87,7 +87,7 @@ namespace json_reader
 		}
 	}
 
-	void AddRouteData(transport_catalogue::TransportCatalogue& tc, const json::Dict& j_dict)
+	void JSONReader::AddRouteData(transport_catalogue::TransportCatalogue& tc, const json::Dict& j_dict)
 	{
 		using namespace std::literals;
 
@@ -107,7 +107,7 @@ namespace json_reader
 	}
 
 
-	const svg::Color ConvertColor_JSONToSVG(const json::Node& color)
+	const svg::Color JSONReader::ConvertColor_JSONToSVG(const json::Node& color)
 	{
 		if (color.IsString())
 		{
@@ -139,7 +139,7 @@ namespace json_reader
 	}
 
 
-	void ReadRendererSettings(map_renderer::MapRenderer& mr, const json::Dict& j_dict)
+	void JSONReader::ReadRendererSettings(map_renderer::MapRenderer& mr, const json::Dict& j_dict)
 	{
 		map_renderer::RendererSettings new_settings;
 
@@ -190,7 +190,7 @@ namespace json_reader
 		json::Print(json::Document{ processed_queries }, output);
 	}*/
 
-	void ParseJSONQueries(transport_catalogue::RequestHandler& rh, const json::Array& j_arr, std::ostream& output) {
+	void JSONReader::ParseJSONQueries(transport_catalogue::RequestHandler& rh, const json::Array& j_arr, std::ostream& output) {
 		using namespace std::literals;
 
 		json::Array processed_queries;
@@ -218,7 +218,7 @@ namespace json_reader
 		json::Print(json::Document{ processed_queries }, output);
 	}
 
-	const json::Node ProcessStopQuery(transport_catalogue::RequestHandler& rh, const json::Dict& j_dict)
+	const json::Node JSONReader::ProcessStopQuery(transport_catalogue::RequestHandler& rh, const json::Dict& j_dict)
 	{
 		using namespace std::literals;
 
@@ -240,7 +240,7 @@ namespace json_reader
 			Value(j_dict.at("id"s).AsInt()).EndDict().Build();
 	}
 
-	const json::Node ProcessRouteQuery(transport_catalogue::RequestHandler& rh, const json::Dict& j_dict)
+	const json::Node JSONReader::ProcessRouteQuery(transport_catalogue::RequestHandler& rh, const json::Dict& j_dict)
 	{
 		using namespace std::literals;
 
@@ -261,7 +261,7 @@ namespace json_reader
 	}
 
 
-	const json::Node ProcessMapQuery(transport_catalogue::RequestHandler& rh, const json::Dict& j_dict)
+	const json::Node JSONReader::ProcessMapQuery(transport_catalogue::RequestHandler& rh, const json::Dict& j_dict)
 	{
 		using namespace std::literals;
 

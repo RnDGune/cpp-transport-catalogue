@@ -52,7 +52,6 @@ namespace map_renderer
             {
                 return;
             }
-
             const auto [left_it, right_it]
                 = std::minmax_element(points_begin, points_end, [](auto lhs, auto rhs)
                     {
@@ -109,64 +108,64 @@ namespace map_renderer
         RouteLine(const std::vector<svg::Point>&, const svg::Color&, const RendererSettings&);
         void Draw(svg::ObjectContainer&) const override;
     private:
-        std::vector<svg::Point> stop_points_;       
-        svg::Color stroke_color_;                    
-        const RendererSettings& renderer_settings_; 
+        std::vector<svg::Point> stop_points_;
+        svg::Color stroke_color_;
+        const RendererSettings& renderer_settings_;
     };
-    
+
     class TextLabel : public svg::Drawable
     {
     public:
         TextLabel(const svg::Point&, const std::string& text, const svg::Color&, const RendererSettings&, const bool& is_stop);
         void Draw(svg::ObjectContainer&) const override;
     private:
-        svg::Point label_point_;        
-        std::string font_family_;      
-        std::string font_weight_;       
-        std::string text_;              
-        svg::Color fill_fore_color_;   
-        const RendererSettings& renderer_settings_;  
-        bool is_stop_;                  
+        svg::Point label_point_;
+        std::string font_family_;
+        std::string font_weight_;
+        std::string text_;
+        svg::Color fill_fore_color_;
+        const RendererSettings& renderer_settings_;
+        bool is_stop_;
     };
-    
+
     class StopIcon : public svg::Drawable
     {
     public:
         StopIcon(const svg::Point&, const RendererSettings&);
         void Draw(svg::ObjectContainer&) const override;
     private:
-        svg::Point label_point_;                     
-        const RendererSettings& renderer_settings_; 
+        svg::Point label_point_;
+        const RendererSettings& renderer_settings_;
     };
 
     class MapRenderer
-{
-public:
-    void ApplyRenderSettings(RendererSettings&);
-
-    svg::Document RenderMap(std::map<const std::string, transport_catalogue::RendererData>&);
-
-    template <typename DrawableIterator>
-    void DrawPicture(DrawableIterator begin, DrawableIterator end, svg::ObjectContainer& target)
     {
-        for (auto it = begin; it != end; ++it)
+    public:
+        void ApplyRenderSettings(RendererSettings&);
+
+        svg::Document RenderMap(std::map<const std::string, transport_catalogue::RendererData>&);
+
+        template <typename DrawableIterator>
+        void DrawPicture(DrawableIterator begin, DrawableIterator end, svg::ObjectContainer& target)
         {
-            (*it)->Draw(target);
+            for (auto it = begin; it != end; ++it)
+            {
+                (*it)->Draw(target);
+            }
         }
-    }
 
-    template <typename Container>
-    void DrawPicture(const Container& container, svg::ObjectContainer& target)
-    {
-        DrawPicture(begin(container), end(container), target);
-    }
+        template <typename Container>
+        void DrawPicture(const Container& container, svg::ObjectContainer& target)
+        {
+            DrawPicture(begin(container), end(container), target);
+        }
 
-private:
-    RendererSettings settings_;    
-    size_t pallette_item_ = 0;     
+    private:
+        RendererSettings settings_;
+        size_t pallette_item_ = 0;
 
-    const svg::Color GetColorFromPallete();
-    void ResetPallette();
+        const svg::Color GetColorFromPallete();
+        void ResetPallette();
 
-};    // class MapRenderer
+    };    // class MapRenderer
 }

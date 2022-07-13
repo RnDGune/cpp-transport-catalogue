@@ -21,7 +21,7 @@ namespace json
         // Конструктор нужен если корневым элементом с стеке будет ссылка на root_
         //Builder();
 
-        KeyContext Key(std::string);
+        KeyContext Key(const std::string&);
         BaseContext Value(Node::Value);
         DictItemContext StartDict();
         ArrayItemContext StartArray();

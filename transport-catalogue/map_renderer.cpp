@@ -31,10 +31,10 @@ namespace map_renderer
 		{
 			polyline.AddPoint(point);
 		}
-		polyline.SetStrokeColor(stroke_color_);                 
+		polyline.SetStrokeColor(stroke_color_);
 		polyline.SetFillColor(svg::NoneColor);                  // FillColor должен быть none
-		polyline.SetStrokeWidth(renderer_settings_.line_width); 
-		polyline.SetStrokeLineCap(svg::StrokeLineCap::ROUND);   
+		polyline.SetStrokeWidth(renderer_settings_.line_width);
+		polyline.SetStrokeLineCap(svg::StrokeLineCap::ROUND);
 		polyline.SetStrokeLineJoin(svg::StrokeLineJoin::ROUND);
 		container.Add(polyline);
 	}
@@ -52,7 +52,7 @@ namespace map_renderer
 	{
 		using namespace std::literals;
 
-		svg::Text fore_text;   
+		svg::Text fore_text;
 
 		fore_text.SetPosition(label_point_);
 		fore_text.SetFontFamily("Verdana"s);
@@ -60,7 +60,7 @@ namespace map_renderer
 
 		if (is_stop_)
 		{
-			
+
 			fore_text.SetOffset(renderer_settings_.stop_label_offset);
 			fore_text.SetFontSize(renderer_settings_.stop_label_font_size);
 			fore_text.SetFillColor("black"s);
@@ -85,7 +85,7 @@ namespace map_renderer
 		container.Add(back_text);
 		container.Add(fore_text);
 	}
-	
+
 	StopIcon::StopIcon(const svg::Point& label_point, const RendererSettings& renderer_settings) :
 		label_point_(label_point), renderer_settings_(renderer_settings)
 	{}
@@ -114,8 +114,8 @@ namespace map_renderer
 	{
 		using namespace std::literals;
 
-		std::unordered_set<geo::Coordinates, geo::CoordinatesHasher> all_coords;                           
-		std::map<std::string_view, geo::Coordinates> all_unique_stops;              
+		std::unordered_set<geo::Coordinates, geo::CoordinatesHasher> all_coords;
+		std::map<std::string_view, geo::Coordinates> all_unique_stops;
 		for (const auto& [name, data] : routes_to_render)
 		{
 			for (size_t i = 0; i < data.stop_coords.size(); ++i)
@@ -126,10 +126,10 @@ namespace map_renderer
 		}
 		SphereProjector sp{ std::begin(all_coords), std::end(all_coords),
 			settings_.width, settings_.height, settings_.padding };
-		std::vector<std::unique_ptr<svg::Drawable>> picture_;   
+		std::vector<std::unique_ptr<svg::Drawable>> picture_;
 		for (const auto& [name, data] : routes_to_render)
 		{
-			std::vector<svg::Point> points;  
+			std::vector<svg::Point> points;
 			for (const auto& stop : data.stop_coords)
 			{
 				points.push_back(sp(stop));
@@ -137,11 +137,11 @@ namespace map_renderer
 			picture_.emplace_back(std::make_unique<RouteLine>(RouteLine{ points, GetColorFromPallete() , settings_ }));
 		}
 
-		ResetPallette();  
+		ResetPallette();
 		for (const auto& [name, data] : routes_to_render)
 		{
 			svg::Color current_line_color = GetColorFromPallete();
-			picture_.emplace_back(std::make_unique<TextLabel>(TextLabel{sp(data.stop_coords[0]),
+			picture_.emplace_back(std::make_unique<TextLabel>(TextLabel{ sp(data.stop_coords[0]),
 															  name,
 															  current_line_color,
 															  settings_,
@@ -170,23 +170,23 @@ namespace map_renderer
 															  settings_,
 															  true }));
 		}
-			svg::Document map;
-			DrawPicture(picture_, map);
-			return map;  
-		}
+		svg::Document map;
+		DrawPicture(picture_, map);
+		return map;
+	}
 
-		const svg::Color MapRenderer::GetColorFromPallete()
-		{
-			if (pallette_item_ == settings_.color_palette.size())
-			{
-				pallette_item_ = 0;
-			}
-			return settings_.color_palette[pallette_item_++];
-		}
-
-		void MapRenderer::ResetPallette()
+	const svg::Color MapRenderer::GetColorFromPallete()
+	{
+		if (pallette_item_ == settings_.color_palette.size())
 		{
 			pallette_item_ = 0;
 		}
-
+		return settings_.color_palette[pallette_item_++];
 	}
+
+	void MapRenderer::ResetPallette()
+	{
+		pallette_item_ = 0;
+	}
+
+}
