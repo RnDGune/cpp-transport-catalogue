@@ -16,6 +16,7 @@
 #include <map>
 #include <vector>
 #include <set>
+#include <algorithm>
 
 
 #include "geo.h"     
@@ -58,12 +59,17 @@ namespace transport_catalogue
 		size_t GetDistanceDirectly(const Stop*, const Stop*);  
 
 		Stop* GetStopByName(std::string_view) const;    
-		Route* GetRouteByName(std::string_view) const;        
+		Route* GetRouteByName(std::string_view) const; 
+		const std::vector<const Stop*> GetAllStopsPtr() const;
+		const std::deque<const Route* > GetAllRoutesPtr() const;
+		size_t GetAllStopsCount() const;
 
 		RouteStat* GetRouteInfo(std::string_view) const;         
 		StopStat* GetBusesForStop(const std::string_view)const;      
 
 		void GetAllRoutes(std::map<const std::string, RendererData>&) const;
+		                 
+		
 
 	private:
 

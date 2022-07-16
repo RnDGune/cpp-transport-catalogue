@@ -211,5 +211,36 @@ namespace transport_catalogue
 		return;
 	}
 
+	size_t TransportCatalogue::GetAllStopsCount() const
+	{
+		return all_stops_data_.size();
+	}
+
+
+	const std::vector<const Stop*> TransportCatalogue::GetAllStopsPtr() const
+	{
+		std::vector<const Stop*> stop_ptrs;
+		for (const auto& [stop_name, stop_ptr] : all_stops_map_)
+		{
+			stop_ptrs.push_back(stop_ptr);
+		}
+		return stop_ptrs;
+	}
+
+
+	const std::deque<const Route*> TransportCatalogue::GetAllRoutesPtr() const
+	{
+		std::deque<const Route*> route_ptrs;
+		for (const auto& route : all_buses_data_)
+		{
+			route_ptrs.emplace_back(&route);
+		}
+		std::sort(route_ptrs.begin(), route_ptrs.end(), [](const Route* lhs, const Route* rhs)
+			{
+				return lhs->route_name <= rhs->route_name;
+			});
+		return route_ptrs;
+	}
+
 
 }

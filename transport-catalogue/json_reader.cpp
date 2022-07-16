@@ -22,10 +22,18 @@ namespace json_reader
 			ReadRendererSettings(mr, renderer_settings_it->second.AsDict());
 		}
 
+		router::TransportRouter tr(tc);
+
+		const auto router_settings_it = j_dict.find("routing_settings"s);
+		if (router_settings_it != j_dict.cend())
+		{
+			ReadRouterSettings(tr, router_settings_it->second.AsDict());
+		}
+
 		auto stat_requests_it = j_dict.find("stat_requests"s);
 		if (stat_requests_it != j_dict.cend())
 		{
-			ParseJSONQueries(rh, stat_requests_it->second.AsArray(), output);
+			ParseJSONQueries(rh,tr, stat_requests_it->second.AsArray(), output);
 		}
 	}
 
@@ -163,34 +171,19 @@ namespace json_reader
 		mr.ApplyRenderSettings(new_settings);
 	}
 
-	/*void ProcessQueriesJSON(transport_catalogue::RequestHandler& rh, const json::Array& j_arr, std::ostream& output)
+	void JSONReader::ReadRouterSettings(router::TransportRouter& tr, const json::Dict& j_dict)
 	{
-		using namespace std::literals;
+		router::RouterSettings new_settings;
 
-		json::Array processed_queries;
-		for (const auto& query : j_arr)
-		{
-			const auto request_type = query.AsMap().find("type"s);
-			if (request_type != query.AsMap().cend())
-			{
-				if (request_type->second.AsString() == "Stop"s)
-				{
-					processed_queries.emplace_back(ProcessStopQuery(rh, query.AsMap()));
-				}
-				else if (request_type->second.AsString() == "Bus"s)
-				{
-					processed_queries.emplace_back(ProcessRouteQuery(rh, query.AsMap()));
-				}
-				else if (request_type->second.AsString() == "Map"s)
-				{
-					processed_queries.emplace_back(ProcessMapQuery(rh, query.AsMap()));
-				}
-			}
-		}
-		json::Print(json::Document{ processed_queries }, output);
-	}*/
+		new_settings.bus_velocity = j_dict.at("bus_velocity").AsInt();
+		new_settings.bus_wait_time = j_dict.at("bus_wait_time").AsInt();
 
-	void JSONReader::ParseJSONQueries(transport_catalogue::RequestHandler& rh, const json::Array& j_arr, std::ostream& output) {
+		tr.ApplyRouterSettings(new_settings);
+	}
+
+	
+
+	void JSONReader::ParseJSONQueries(transport_catalogue::RequestHandler& rh, router::TransportRouter& tr, const json::Array& j_arr, std::ostream& output) {
 		using namespace std::literals;
 
 		json::Array processed_queries;
@@ -207,11 +200,15 @@ namespace json_reader
 				}
 				else if (request_type->second.AsString() == "Bus"s)
 				{
-					processed_queries.emplace_back(ProcessRouteQuery(rh, query.AsDict()));
+					processed_queries.emplace_back(ProcessBusQuery(rh, query.AsDict()));
 				}
 				else if (request_type->second.AsString() == "Map"s)
 				{
 					processed_queries.emplace_back(ProcessMapQuery(rh, query.AsDict()));
+				}
+				else if (request_type->second.AsString() == "Route"s)
+				{
+					processed_queries.emplace_back(ProcessRouteQuery(tr, query.AsDict()));
 				}
 			}
 		}
@@ -240,7 +237,7 @@ namespace json_reader
 			Value(j_dict.at("id"s).AsInt()).EndDict().Build();
 	}
 
-	const json::Node JSONReader::ProcessRouteQuery(transport_catalogue::RequestHandler& rh, const json::Dict& j_dict)
+	const json::Node JSONReader::ProcessBusQuery(transport_catalogue::RequestHandler& rh, const json::Dict& j_dict)
 	{
 		using namespace std::literals;
 
@@ -270,6 +267,42 @@ namespace json_reader
 		svg_map.Render(os_stream);
 		return json::Builder{}.StartDict().Key("map"s).Value(os_stream.str()).Key("request_id"s).
 			Value(j_dict.at("id"s).AsInt()).EndDict().Build();
+	}
+
+	const json::Node JSONReader::ProcessRouteQuery(router::TransportRouter& tr, const json::Dict& j_dict)
+	{
+		using namespace std::literals;
+
+		auto route_data = tr.CalculateRoute(j_dict.at("from").AsString(), j_dict.at("to").AsString());
+
+		if (!route_data.founded)
+		{
+			return json::Builder{}.StartDict().Key("request_id"s).Value(j_dict.at("id"s).AsInt()).
+				Key("error_message"s).Value("not found"s).EndDict().Build();
+		}
+
+		json::Array items;
+		for (const auto& item : route_data.items)
+		{
+			json::Dict items_map;
+			if (item.type == graph::EdgeType::TRAVEL)
+			{
+				items_map["type"] = "Bus"s;
+				items_map["bus"] = item.edge_name;
+				items_map["span_count"] = item.span_count;
+			}
+			else if (item.type == graph::EdgeType::WAIT)
+			{
+				items_map["type"] = "Wait"s;
+				items_map["stop_name"] = item.edge_name;
+			}
+			items_map["time"] = item.time;
+			items.push_back(items_map);
+		}
+		return json::Builder{}.StartDict().
+			 Key("request_id").Value(j_dict.at("id").AsInt()).
+			 Key("total_time").Value(route_data.total_time).
+			 Key("items").Value(items).EndDict().Build();
 	}
 
 
