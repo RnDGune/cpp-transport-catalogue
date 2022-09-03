@@ -3,8 +3,6 @@
 namespace map_renderer
 {
 
-	// ---------------SphereProjector-------------------------
-
 	bool IsZero(const double value)
 	{
 		return (std::abs(value) < EPSILON);
@@ -15,8 +13,6 @@ namespace map_renderer
 		return { (coords.lng - min_lon_) * zoom_coeff_ + padding_,
 				(max_lat_ - coords.lat) * zoom_coeff_ + padding_ };
 	}
-
-	// -----Классы фигур, реализующие интерфейс Drawable----
 
 	RouteLine::RouteLine(const std::vector<svg::Point>& stop_points,
 		const svg::Color& stroke_color,
@@ -32,7 +28,7 @@ namespace map_renderer
 			polyline.AddPoint(point);
 		}
 		polyline.SetStrokeColor(stroke_color_);
-		polyline.SetFillColor(svg::NoneColor);                  // FillColor должен быть none
+		polyline.SetFillColor(svg::NoneColor);
 		polyline.SetStrokeWidth(renderer_settings_.line_width);
 		polyline.SetStrokeLineCap(svg::StrokeLineCap::ROUND);
 		polyline.SetStrokeLineJoin(svg::StrokeLineJoin::ROUND);
@@ -60,14 +56,12 @@ namespace map_renderer
 
 		if (is_stop_)
 		{
-
 			fore_text.SetOffset(renderer_settings_.stop_label_offset);
 			fore_text.SetFontSize(renderer_settings_.stop_label_font_size);
 			fore_text.SetFillColor("black"s);
 		}
 		else
 		{
-
 			fore_text.SetOffset(renderer_settings_.bus_label_offset);
 			fore_text.SetFontSize(renderer_settings_.bus_label_font_size);
 			fore_text.SetFontWeight("bold"s);
@@ -102,31 +96,20 @@ namespace map_renderer
 		container.Add(icon);
 	}
 
-
-	// -----------------MapRenderer-------------------------
-
-	void MapRenderer::ApplyRenderSettings(RendererSettings& settings)
+	void MapRenderer::ApplyRendererSettings(RendererSettings settings)
 	{
 		settings_ = settings;
 	}
 
-	svg::Document MapRenderer::RenderMap(std::map<const std::string, transport_catalogue::RendererData>& routes_to_render)
+	RendererSettings MapRenderer::GetRendererSettings() const
 	{
-		using namespace std::literals;
+		return settings_;
+	}
 
-		std::unordered_set<geo::Coordinates, geo::CoordinatesHasher> all_coords;
-		std::map<std::string_view, geo::Coordinates> all_unique_stops;
-		for (const auto& [name, data] : routes_to_render)
-		{
-			for (size_t i = 0; i < data.stop_coords.size(); ++i)
-			{
-				all_coords.insert(data.stop_coords[i]);
-				all_unique_stops.insert(make_pair(data.stop_names[i], data.stop_coords[i]));
-			}
-		}
-		SphereProjector sp{ std::begin(all_coords), std::end(all_coords),
-			settings_.width, settings_.height, settings_.padding };
-		std::vector<std::unique_ptr<svg::Drawable>> picture_;
+	void MapRenderer::AddRouteLinesToRender(std::vector<std::unique_ptr<svg::Drawable>>& picture_,
+		SphereProjector& sp,
+		std::map<const std::string, transport_catalogue::RendererData>& routes_to_render)
+	{
 		for (const auto& [name, data] : routes_to_render)
 		{
 			std::vector<svg::Point> points;
@@ -136,7 +119,12 @@ namespace map_renderer
 			}
 			picture_.emplace_back(std::make_unique<RouteLine>(RouteLine{ points, GetColorFromPallete() , settings_ }));
 		}
+	}
 
+	void MapRenderer::AddRouteLabelsToRender(std::vector<std::unique_ptr<svg::Drawable>>& picture_,
+		SphereProjector& sp,
+		std::map<const std::string, transport_catalogue::RendererData>& routes_to_render)
+	{
 		ResetPallette();
 		for (const auto& [name, data] : routes_to_render)
 		{
@@ -158,20 +146,53 @@ namespace map_renderer
 				}
 			}
 		}
+	}
+
+	void MapRenderer::AddStopLabelsToRender(std::vector<std::unique_ptr<svg::Drawable>>& picture_,
+		SphereProjector& sp,
+		std::map<std::string_view, geo::Coordinates> all_unique_stops)
+	{
 		for (const auto& stop : all_unique_stops)
 		{
 			picture_.emplace_back(std::make_unique<StopIcon>(StopIcon{ sp(stop.second), settings_ }));
 		}
+	}
+
+	void MapRenderer::AddStopIconsToRender(std::vector<std::unique_ptr<svg::Drawable>>& picture_,
+		SphereProjector& sp,
+		std::map<std::string_view, geo::Coordinates> all_unique_stops)
+	{
+		using namespace std::literals;
+
 		for (const auto& stop : all_unique_stops)
 		{
-			picture_.emplace_back(std::make_unique<TextLabel>(TextLabel{ sp(stop.second),
-															  std::string(stop.first),
-															  "black"s,
-															  settings_,
-															  true }));
+			picture_.emplace_back(std::make_unique<TextLabel>(TextLabel{ sp(stop.second),std::string(stop.first),"black"s,settings_,true }));
 		}
+	}
+
+	svg::Document MapRenderer::RenderMap(std::map<const std::string, transport_catalogue::RendererData>& routes_to_render)
+	{
+		std::unordered_set<geo::Coordinates, geo::CoordinatesHasher> all_coords;
+		std::map<std::string_view, geo::Coordinates> all_unique_stops;
+		for (const auto& [name, data] : routes_to_render)
+		{
+			for (size_t i = 0; i < data.stop_coords.size(); ++i)
+			{
+				all_coords.insert(data.stop_coords[i]);
+				all_unique_stops.insert(make_pair(data.stop_names[i], data.stop_coords[i]));
+			}
+		}
+		SphereProjector sp{ std::begin(all_coords), std::end(all_coords),
+			settings_.width, settings_.height, settings_.padding };
+
+		std::vector<std::unique_ptr<svg::Drawable>> picture_;   
+		AddRouteLinesToRender(picture_, sp, routes_to_render);
+		AddRouteLabelsToRender(picture_, sp, routes_to_render);
+		AddStopLabelsToRender(picture_, sp, all_unique_stops);
+		AddStopIconsToRender(picture_, sp, all_unique_stops);
 		svg::Document map;
 		DrawPicture(picture_, map);
+
 		return map;
 	}
 
@@ -188,5 +209,4 @@ namespace map_renderer
 	{
 		pallette_item_ = 0;
 	}
-
 }

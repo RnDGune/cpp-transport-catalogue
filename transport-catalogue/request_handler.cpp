@@ -1,7 +1,8 @@
 #include "request_handler.h"
 
-namespace detail 
+namespace detail
 {
+
 	std::pair<std::string_view, std::string_view> Split(std::string_view line, char by, int count)
 	{
 		size_t pos = line.find(by);
@@ -10,12 +11,16 @@ namespace detail
 			pos = line.find(by, pos + 1);
 		}
 		std::string_view left = line.substr(0, pos);
+
+		// Если символ-разделитель был найден...
 		if (pos < line.size() && pos + 1 < line.size())
 		{
+			// ...возвращаем подстроки без разделителя
 			return { left, line.substr(pos + 1) };
 		}
 		else
 		{
+			// ...иначе все возвращаем в первой строке и пустую вторую
 			return { left, std::string_view() };
 		}
 	}
@@ -49,23 +54,21 @@ namespace detail
 namespace transport_catalogue
 {
 
-	const std::optional<RouteStat*> RequestHandler::GetRouteInfo(const std::string_view& bus_name) const
+	const std::optional<RouteStatPtr> RequestHandler::GetRouteInfo(const std::string_view& bus_name) const
 	{
-		return transport_catalogue_.GetRouteInfo(bus_name);
+		return tc_.GetRouteInfo(bus_name);
 	}
 
-	const std::optional<StopStat*> RequestHandler::GetBusesForStop(const std::string_view& stop_name) const
+	const std::optional<StopStatPtr> RequestHandler::GetBusesForStop(const std::string_view& stop_name) const
 	{
-		return transport_catalogue_.GetBusesForStop(stop_name);
+		return tc_.GetBusesForStopInfo(stop_name);
 	}
 
 	svg::Document RequestHandler::GetMapRender() const
 	{
 		std::map<const std::string, transport_catalogue::RendererData> all_routes;
-
-		transport_catalogue_.GetAllRoutes(all_routes);
-
-		return map_render_.RenderMap(all_routes);
+		tc_.GetAllRoutes(all_routes);
+		return mr_.RenderMap(all_routes);
 	}
 
 }

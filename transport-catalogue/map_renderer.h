@@ -1,5 +1,9 @@
 #pragma once
 
+#include "domain.h"
+#include "geo.h"
+#include "svg.h"
+
 #include <string>
 #include <string_view>
 #include <vector>
@@ -9,16 +13,8 @@
 #include <algorithm>      
 #include <memory>         
 
-#include "domain.h"
-#include "geo.h"
-#include "svg.h"
-
-
-
 namespace map_renderer
 {
-    inline const double EPSILON = 1e-6;
-
     struct RendererSettings
     {
         double width = 1200.0;
@@ -34,6 +30,7 @@ namespace map_renderer
         double underlayer_width = 3.0;
         std::vector<svg::Color> color_palette{ std::string("green"), svg::Rgb{255, 160, 0}, std::string("red") };
     };
+    inline const double EPSILON = 1e-6;
 
     bool IsZero(const double);
 
@@ -47,7 +44,6 @@ namespace map_renderer
             double padding)
             : padding_(padding)
         {
-            // ���� ��������� ��������� ���� - �������
             if (points_begin == points_end)
             {
                 return;
@@ -100,7 +96,7 @@ namespace map_renderer
         double min_lon_ = 0;
         double max_lat_ = 0;
         double zoom_coeff_ = 0;
-    };    //class SphereProjector
+    };
 
     class RouteLine : public svg::Drawable
     {
@@ -141,7 +137,20 @@ namespace map_renderer
     class MapRenderer
     {
     public:
-        void ApplyRenderSettings(RendererSettings&);
+        void ApplyRendererSettings(RendererSettings);
+        RendererSettings GetRendererSettings() const;
+        void AddRouteLinesToRender(std::vector<std::unique_ptr<svg::Drawable>>& picture_,
+            SphereProjector& sp,
+            std::map<const std::string, transport_catalogue::RendererData>& routes_to_render);
+        void AddRouteLabelsToRender(std::vector<std::unique_ptr<svg::Drawable>>& picture_,
+            SphereProjector& sp,
+            std::map<const std::string, transport_catalogue::RendererData>& routes_to_render);
+        void AddStopLabelsToRender(std::vector<std::unique_ptr<svg::Drawable>>& picture_,
+            SphereProjector& sp,
+            std::map<std::string_view, geo::Coordinates> all_unique_stops);
+        void AddStopIconsToRender(std::vector<std::unique_ptr<svg::Drawable>>& picture_,
+            SphereProjector& sp,
+            std::map<std::string_view, geo::Coordinates> all_unique_stops);
 
         svg::Document RenderMap(std::map<const std::string, transport_catalogue::RendererData>&);
 
@@ -161,11 +170,13 @@ namespace map_renderer
         }
 
     private:
-        RendererSettings settings_;
-        size_t pallette_item_ = 0;
+        RendererSettings settings_;    // Настройки рендерера
+        size_t pallette_item_ = 0;     // Текущий элемент из палитры цветов
 
+        // Возвращает следующий цвет из цветовой палитры
         const svg::Color GetColorFromPallete();
         void ResetPallette();
 
-    };    // class MapRenderer
+    };
+
 }

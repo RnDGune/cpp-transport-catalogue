@@ -1,28 +1,25 @@
 #pragma once
 
-#include <cmath>
+#include <cstdlib>
 
+namespace geo
+{
+const int EARTH_RADIUS = 6371000;
 
-const double earth_radius = 6371000;
+struct Coordinates
+{
+    double lat;  // РЁРёСЂРѕС‚Р°
+    double lng;  // Р”РѕР»РіРѕС‚Р°
+    bool operator==(const Coordinates&) const;
+    bool operator!=(const Coordinates&) const;
+};
 
-#pragma once
+class CoordinatesHasher
+{
+public:
+    std::size_t operator()(const Coordinates&) const;
+};
 
-namespace geo {
-
-    struct Coordinates {
-        double lat; // Широта
-        double lng; // Долгота
-        bool operator==(const Coordinates& other) const;
-        bool operator!=(const Coordinates& other) const;
-
-    };
-
-    class CoordinatesHasher
-    {
-    public:
-        std::size_t operator()(const Coordinates&) const;
-    };
-
-    double ComputeDistance(Coordinates from, Coordinates to);
+double ComputeDistance(Coordinates from, Coordinates to);
 
 }  // namespace geo

@@ -1,10 +1,9 @@
 #pragma once
 
-#include <memory>
-
-#include "domain.h"    
+#include "domain.h"    // для доступа к настройкам роутера
 #include "transport_catalogue.h"
 #include "router.h"
+#include <memory>
 
 
 
@@ -39,11 +38,12 @@ namespace router
 		TransportRouter(transport_catalogue::TransportCatalogue&);
 
 		void ApplyRouterSettings(RouterSettings&);
-		const RouterSettings& GetRouterSettings() const;
+		RouterSettings GetRouterSettings() const;
+
 		const RouteData CalculateRoute(const std::string_view, const std::string_view);
 
 	private:
-		void BuildGraph();
+		void BuildGraph();    // Создает граф на основе транспортного каталога
 
 		RouterSettings settings_;
 		transport_catalogue::TransportCatalogue& tc_;
@@ -52,6 +52,6 @@ namespace router
 		std::unique_ptr<graph::Router<double>> router_ = nullptr;
 		std::unordered_map<std::string_view, size_t> vertexes_wait_;
 		std::unordered_map<std::string_view, size_t> vertexes_travel_;
-
 	};
+
 }

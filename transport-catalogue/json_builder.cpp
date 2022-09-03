@@ -3,417 +3,414 @@
 namespace json
 {
 
-    //Builder::Builder()
-    //{}
-
-    /*
-    При определении словаря задаёт строковое значение ключа для очередной пары
-    ключ-значение. Следующий вызов метода обязательно должен задавать
-    соответствующее этому ключу значение с помощью метода Value или начинать
-    его определение с помощью StartDict или StartArray.
-    */
-    KeyContext Builder::Key(const std::string& key)
+/*
+РџСЂРё РѕРїСЂРµРґРµР»РµРЅРёРё СЃР»РѕРІР°СЂСЏ Р·Р°РґР°С‘С‚ СЃС‚СЂРѕРєРѕРІРѕРµ Р·РЅР°С‡РµРЅРёРµ РєР»СЋС‡Р° РґР»СЏ РѕС‡РµСЂРµРґРЅРѕР№ РїР°СЂС‹
+РєР»СЋС‡-Р·РЅР°С‡РµРЅРёРµ. РЎР»РµРґСѓСЋС‰РёР№ РІС‹Р·РѕРІ РјРµС‚РѕРґР° РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ РґРѕР»Р¶РµРЅ Р·Р°РґР°РІР°С‚СЊ
+СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РµРµ СЌС‚РѕРјСѓ РєР»СЋС‡Сѓ Р·РЅР°С‡РµРЅРёРµ СЃ РїРѕРјРѕС‰СЊСЋ РјРµС‚РѕРґР° Value РёР»Рё РЅР°С‡РёРЅР°С‚СЊ
+РµРіРѕ РѕРїСЂРµРґРµР»РµРЅРёРµ СЃ РїРѕРјРѕС‰СЊСЋ StartDict РёР»Рё StartArray.
+*/
+KeyContext Builder::Key(std::string key)
+{
+    // Р•СЃР»Рё СЌС‚Рѕ РїРµСЂРІС‹Р№ СЌР»РµРјРµРЅС‚ РІ РґРѕРєСѓРјРµРЅС‚Рµ (root РµС‰Рµ РїСѓСЃС‚)
+    if (root_ == nullptr)
     {
-        // Если это первый элемент в документе (root еще пуст)
-        if (root_ == nullptr)
-        {
-            throw std::logic_error("Key() called for empty document.");
-        }
-        else if (nodes_stack_.empty())
-        {
-            // Ошибочный случай Key() при пустом стеке
-            throw std::logic_error("Key() called outside of any container element.");
-        }
-
-        // Это не первый элемент документа.
-        // Проверяем какого типа текущий контейнер
-        Node* parent_container = nodes_stack_.back();
-        if (parent_container->IsDict())
-        {
-            if (!key_opened_)
-            {
-                // Запоминаем ключ
-                key_=key;
-
-                // Добавляем новый ключ с пустым Value в словарь
-                const_cast<Dict&>(parent_container->AsDict())[key_] = Node();
-                key_opened_ = true;
-            }
-            else
-            {
-                // Ошибочный случай Key().Key()...
-                throw std::logic_error("Key() called for a Dict with already setted Key. Should call Value()");
-            }
-        }
-        else
-        {
-            // Ошибочный случай Key() для НЕ словаря
-            throw std::logic_error("Key() called for a container other than Dict.");
-        }
-
-        return KeyContext{ *this };
+        throw std::logic_error("Key() called for empty document.");
+    }
+    else if (nodes_stack_.empty())
+    {
+        // РћС€РёР±РѕС‡РЅС‹Р№ СЃР»СѓС‡Р°Р№ Key() РїСЂРё РїСѓСЃС‚РѕРј СЃС‚РµРєРµ
+        throw std::logic_error("Key() called outside of any container element.");
     }
 
-
-    /*
-    Задаёт значение, соответствующее ключу при определении словаря, очередной
-    элемент массива или, если вызвать сразу после конструктора json::Builder,
-    всё содержимое конструируемого JSON-объекта.
-    Может принимать как простой объект — число или строку — так и целый массив
-    или словарь.
-    Здесь Node::Value — это синоним для базового класса Node,
-    шаблона variant с набором возможных типов-значений.
-    */
-    BaseContext Builder::Value(Node::Value val)
+    // Р­С‚Рѕ РЅРµ РїРµСЂРІС‹Р№ СЌР»РµРјРµРЅС‚ РґРѕРєСѓРјРµРЅС‚Р°.
+    // РџСЂРѕРІРµСЂСЏРµРј РєР°РєРѕРіРѕ С‚РёРїР° С‚РµРєСѓС‰РёР№ РєРѕРЅС‚РµР№РЅРµСЂ
+    Node* parent_container = nodes_stack_.back();
+    if (parent_container->IsDict())
     {
-
-        // Если это первый элемент в документе (root еще пуст)...
-        if (root_ == nullptr)
+        if (!key_opened_)
         {
-            // ...то контейнеров в стеке вызовов нет и val содержит все содержимое JSON-объекта.
-            root_.GetValue() = std::move(val);  // variant сам знает что записать из другого variant
-            return BaseContext{ *this };
-        }
+            // Р—Р°РїРѕРјРёРЅР°РµРј РєР»СЋС‡
+            key_.swap(key);
 
-        // Проверяем ошибочный случай Builder{}.Value().Value()... (root_ не nullptr и пустой стек)
-        if (nodes_stack_.empty())
-        {
-            throw std::logic_error("Value() called at wrong order (possibly, several Value() calls in a row for non-container).");
-        }
-
-        // Если мы здесь, то это не первый элемент документа.
-
-        // Проверяем какого типа текущий контейнер
-        Node* current_container = nodes_stack_.back();
-        if (current_container->IsArray())
-        {
-            // Текущий контейнер - массив
-
-            // Добавляем значение в текущий массив
-            const_cast<Array&>(current_container->AsArray()).push_back(std::move(val));
-        }
-        else if (current_container->IsDict())
-        {
-            // Текущий контейнер - словарь
-            if (key_opened_)
-            {
-                // Родительский контейнер - словарь и ключ не пуст. Текущее значение val - значение пары словаряя
-
-                // Добавляем val в пару Key-Value текущего словаря для текущего ключа key_
-                const_cast<Dict&>(current_container->AsDict())[key_] = std::move(val);
-                // Ключ получил соответствующее ему значение.
-                key_.clear();
-                key_opened_ = false;
-            }
-            else
-            {
-                throw std::logic_error("Value() called for Dict' Key field, not for Value field as intended.");
-            }
+            // Р”РѕР±Р°РІР»СЏРµРј РЅРѕРІС‹Р№ РєР»СЋС‡ СЃ РїСѓСЃС‚С‹Рј Value РІ СЃР»РѕРІР°СЂСЊ
+            const_cast<Dict&>(parent_container->AsDict())[key_] = Node();
+            key_opened_ = true;
         }
         else
         {
-            throw std::logic_error("Value() called for unknown parent container.");
+            // РћС€РёР±РѕС‡РЅС‹Р№ СЃР»СѓС‡Р°Р№ Key().Key()...
+            throw std::logic_error("Key() called for a Dict with already setted Key. Should call Value()");
         }
-
-        return BaseContext(*this);
+    }
+    else
+    {
+        // РћС€РёР±РѕС‡РЅС‹Р№ СЃР»СѓС‡Р°Р№ Key() РґР»СЏ РќР• СЃР»РѕРІР°СЂСЏ
+        throw std::logic_error("Key() called for a container other than Dict.");
     }
 
-    /*
-    Начинает определение сложного значения-словаря.
-    Вызывается в тех же контекстах, что и Value.
-    Следующим вызовом обязательно должен быть Key или EndDict.
-    */
-    DictItemContext Builder::StartDict()
+    return KeyContext{ *this };
+}
+
+
+/*
+Р—Р°РґР°С‘С‚ Р·РЅР°С‡РµРЅРёРµ, СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РµРµ РєР»СЋС‡Сѓ РїСЂРё РѕРїСЂРµРґРµР»РµРЅРёРё СЃР»РѕРІР°СЂСЏ, РѕС‡РµСЂРµРґРЅРѕР№
+СЌР»РµРјРµРЅС‚ РјР°СЃСЃРёРІР° РёР»Рё, РµСЃР»Рё РІС‹Р·РІР°С‚СЊ СЃСЂР°Р·Сѓ РїРѕСЃР»Рµ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР° json::Builder,
+РІСЃС‘ СЃРѕРґРµСЂР¶РёРјРѕРµ РєРѕРЅСЃС‚СЂСѓРёСЂСѓРµРјРѕРіРѕ JSON-РѕР±СЉРµРєС‚Р°.
+РњРѕР¶РµС‚ РїСЂРёРЅРёРјР°С‚СЊ РєР°Рє РїСЂРѕСЃС‚РѕР№ РѕР±СЉРµРєС‚ вЂ” С‡РёСЃР»Рѕ РёР»Рё СЃС‚СЂРѕРєСѓ вЂ” С‚Р°Рє Рё С†РµР»С‹Р№ РјР°СЃСЃРёРІ
+РёР»Рё СЃР»РѕРІР°СЂСЊ.
+Р—РґРµСЃСЊ Node::Value вЂ” СЌС‚Рѕ СЃРёРЅРѕРЅРёРј РґР»СЏ Р±Р°Р·РѕРІРѕРіРѕ РєР»Р°СЃСЃР° Node,
+С€Р°Р±Р»РѕРЅР° variant СЃ РЅР°Р±РѕСЂРѕРј РІРѕР·РјРѕР¶РЅС‹С… С‚РёРїРѕРІ-Р·РЅР°С‡РµРЅРёР№.
+*/
+BaseContext Builder::Value(Node::Value val)
+{
+
+    // Р•СЃР»Рё СЌС‚Рѕ РїРµСЂРІС‹Р№ СЌР»РµРјРµРЅС‚ РІ РґРѕРєСѓРјРµРЅС‚Рµ (root РµС‰Рµ РїСѓСЃС‚)...
+    if (root_ == nullptr)
     {
+        // ...С‚Рѕ РєРѕРЅС‚РµР№РЅРµСЂРѕРІ РІ СЃС‚РµРєРµ РІС‹Р·РѕРІРѕРІ РЅРµС‚ Рё val СЃРѕРґРµСЂР¶РёС‚ РІСЃРµ СЃРѕРґРµСЂР¶РёРјРѕРµ JSON-РѕР±СЉРµРєС‚Р°.
+        root_.GetValue() = std::move(val);  // variant СЃР°Рј Р·РЅР°РµС‚ С‡С‚Рѕ Р·Р°РїРёСЃР°С‚СЊ РёР· РґСЂСѓРіРѕРіРѕ variant
+        return BaseContext{ *this };
+    }
 
-        // Если это первый элемент в документе (root еще пуст)
-        if (root_ == nullptr)
+    // РџСЂРѕРІРµСЂСЏРµРј РѕС€РёР±РѕС‡РЅС‹Р№ СЃР»СѓС‡Р°Р№ Builder{}.Value().Value()... (root_ РЅРµ nullptr Рё РїСѓСЃС‚РѕР№ СЃС‚РµРє)
+    if (nodes_stack_.empty())
+    {
+        throw std::logic_error("Value() called at wrong order (possibly, several Value() calls in a row for non-container).");
+    }
+
+    // Р•СЃР»Рё РјС‹ Р·РґРµСЃСЊ, С‚Рѕ СЌС‚Рѕ РЅРµ РїРµСЂРІС‹Р№ СЌР»РµРјРµРЅС‚ РґРѕРєСѓРјРµРЅС‚Р°.
+
+    // РџСЂРѕРІРµСЂСЏРµРј РєР°РєРѕРіРѕ С‚РёРїР° С‚РµРєСѓС‰РёР№ РєРѕРЅС‚РµР№РЅРµСЂ
+    Node* current_container = nodes_stack_.back();
+    if (current_container->IsArray())
+    {
+        // РўРµРєСѓС‰РёР№ РєРѕРЅС‚РµР№РЅРµСЂ - РјР°СЃСЃРёРІ
+
+        // Р”РѕР±Р°РІР»СЏРµРј Р·РЅР°С‡РµРЅРёРµ РІ С‚РµРєСѓС‰РёР№ РјР°СЃСЃРёРІ
+        const_cast<Array&>(current_container->AsArray()).push_back(std::move(val));
+    }
+    else if (current_container->IsDict())
+    {
+        // РўРµРєСѓС‰РёР№ РєРѕРЅС‚РµР№РЅРµСЂ - СЃР»РѕРІР°СЂСЊ
+        if (key_opened_)
         {
-            root_ = Dict();               // Создаем пустой массив в root_
-            nodes_stack_.emplace_back(&root_);  // Запомнаем &root_ в качестве начала стека
-            return DictItemContext{ *this };
-        }
+            // Р РѕРґРёС‚РµР»СЊСЃРєРёР№ РєРѕРЅС‚РµР№РЅРµСЂ - СЃР»РѕРІР°СЂСЊ Рё РєР»СЋС‡ РЅРµ РїСѓСЃС‚. РўРµРєСѓС‰РµРµ Р·РЅР°С‡РµРЅРёРµ val - Р·РЅР°С‡РµРЅРёРµ РїР°СЂС‹ СЃР»РѕРІР°СЂСЏСЏ
 
-        // Возможная ошибка - UB при пустом стеке и ненулевом root_
-        // Это возможно при ошибочном вызове Start*() после Value()
-        if (nodes_stack_.empty())
-        {
-            throw std::logic_error("StartDict() called at wrong order.");
-        }
-
-        // Это не первый элемент документа.
-        // Проверяем каким был предыдущий (родительский) контейнер
-        Node* parent_container = nodes_stack_.back();
-        if (parent_container->IsArray())
-        {
-            // Родительский контейнер - массив. У нас случай нового словаря внутри массива
-
-            // Добавляем новый пустой словарь в родительский массив
-            const_cast<Array&>(parent_container->AsArray()).push_back(Dict());
-            // Получаем указатель на добавленный новый узел
-            Node* node = &const_cast<Array&>(parent_container->AsArray()).back();
-            // Сохраняем указатель в стеке
-            nodes_stack_.push_back(node);
-        }
-        else if (parent_container->IsDict())
-        {
-            if (key_opened_)
-            {
-                // Родительский контейнер - словарь и ключ не пуст. У нас случай нового словаря в качестве значения пары родительского словаря
-
-                // Добавляем новый пустой словарь в родительский словарь для ключа key_
-                const_cast<Dict&>(parent_container->AsDict())[key_] = Dict();
-                // Получаем указатель на добавленный новый узел
-                Node* node = &const_cast<Dict&>(parent_container->AsDict()).at(key_);
-                // Сохраняем указатель в стеке
-                nodes_stack_.push_back(node);
-                // Ключ получил соответствующее ему значение.
-                key_.clear();
-                key_opened_ = false;
-            }
-            else
-            {
-                throw std::logic_error("StartDict() called for Key element, not for Value as intended.");
-            }
+            // Р”РѕР±Р°РІР»СЏРµРј val РІ РїР°СЂСѓ Key-Value С‚РµРєСѓС‰РµРіРѕ СЃР»РѕРІР°СЂСЏ РґР»СЏ С‚РµРєСѓС‰РµРіРѕ РєР»СЋС‡Р° key_
+            const_cast<Dict&>(current_container->AsDict())[key_] = std::move(val);
+            // РљР»СЋС‡ РїРѕР»СѓС‡РёР» СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РµРµ РµРјСѓ Р·РЅР°С‡РµРЅРёРµ.
+            key_.clear();
+            key_opened_ = false;
         }
         else
         {
-            throw std::logic_error("StartDict() called not for empty document, nor for Array element / Dict Value element.");
+            throw std::logic_error("Value() called for Dict' Key field, not for Value field as intended.");
         }
+    }
+    else
+    {
+        throw std::logic_error("Value() called for unknown parent container.");
+    }
 
+    return BaseContext(*this);
+}
 
+/*
+РќР°С‡РёРЅР°РµС‚ РѕРїСЂРµРґРµР»РµРЅРёРµ СЃР»РѕР¶РЅРѕРіРѕ Р·РЅР°С‡РµРЅРёСЏ-СЃР»РѕРІР°СЂСЏ.
+Р’С‹Р·С‹РІР°РµС‚СЃСЏ РІ С‚РµС… Р¶Рµ РєРѕРЅС‚РµРєСЃС‚Р°С…, С‡С‚Рѕ Рё Value.
+РЎР»РµРґСѓСЋС‰РёРј РІС‹Р·РѕРІРѕРј РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ Key РёР»Рё EndDict.
+*/
+DictItemContext Builder::StartDict()
+{
+
+    // Р•СЃР»Рё СЌС‚Рѕ РїРµСЂРІС‹Р№ СЌР»РµРјРµРЅС‚ РІ РґРѕРєСѓРјРµРЅС‚Рµ (root РµС‰Рµ РїСѓСЃС‚)
+    if (root_ == nullptr)
+    {
+        root_ = Dict();               // РЎРѕР·РґР°РµРј РїСѓСЃС‚РѕР№ РјР°СЃСЃРёРІ РІ root_
+        nodes_stack_.emplace_back(&root_);  // Р—Р°РїРѕРјРЅР°РµРј &root_ РІ РєР°С‡РµСЃС‚РІРµ РЅР°С‡Р°Р»Р° СЃС‚РµРєР°
         return DictItemContext{ *this };
     }
 
-    /*
-     Начинает определение сложного значения-массива. Вызывается в тех же контекстах,
-     что и Value. Следующим вызовом обязательно должен быть EndArray или любой,
-     задающий новое значение: Value, StartDict или StartArray.
-    */
-    ArrayItemContext Builder::StartArray()
+    // Р’РѕР·РјРѕР¶РЅР°СЏ РѕС€РёР±РєР° - UB РїСЂРё РїСѓСЃС‚РѕРј СЃС‚РµРєРµ Рё РЅРµРЅСѓР»РµРІРѕРј root_
+    // Р­С‚Рѕ РІРѕР·РјРѕР¶РЅРѕ РїСЂРё РѕС€РёР±РѕС‡РЅРѕРј РІС‹Р·РѕРІРµ Start*() РїРѕСЃР»Рµ Value()
+    if (nodes_stack_.empty())
     {
-        /*
-        Если StartArray, то варианта 3:
-        1. Этот массив первый и корневой элемент, тогда нужно в root_ положить ноду с
-           пустым массивом и адрес этой ноды добавить в стек.
-        2. Предыдущий элемент - массив (nodes_stack_.back()->IsArray()). Тогда нужно
-           получить ссылку на последний элемент nodes_stack_ (например, через get<Array>
-           и неконстантный GetValue()), добавить в массив по этой ссылке ноду с пустым
-           массивом и положить в стек адрес только что добавленной ноды.
-        3. Предыдущий элемент - указатель на значение словаря (проверка nodes_stack_back()->IsNull()).
-           Тогда просто в последний элемент стека записываем ноду с пустым массивом.
-        */
+        throw std::logic_error("StartDict() called at wrong order.");
+    }
 
-        // Если это первый элемент в документе (root еще пуст)
-        if (root_ == nullptr)
+    // Р­С‚Рѕ РЅРµ РїРµСЂРІС‹Р№ СЌР»РµРјРµРЅС‚ РґРѕРєСѓРјРµРЅС‚Р°.
+    // РџСЂРѕРІРµСЂСЏРµРј РєР°РєРёРј Р±С‹Р» РїСЂРµРґС‹РґСѓС‰РёР№ (СЂРѕРґРёС‚РµР»СЊСЃРєРёР№) РєРѕРЅС‚РµР№РЅРµСЂ
+    Node* parent_container = nodes_stack_.back();
+    if (parent_container->IsArray())
+    {
+        // Р РѕРґРёС‚РµР»СЊСЃРєРёР№ РєРѕРЅС‚РµР№РЅРµСЂ - РјР°СЃСЃРёРІ. РЈ РЅР°СЃ СЃР»СѓС‡Р°Р№ РЅРѕРІРѕРіРѕ СЃР»РѕРІР°СЂСЏ РІРЅСѓС‚СЂРё РјР°СЃСЃРёРІР°
+
+        // Р”РѕР±Р°РІР»СЏРµРј РЅРѕРІС‹Р№ РїСѓСЃС‚РѕР№ СЃР»РѕРІР°СЂСЊ РІ СЂРѕРґРёС‚РµР»СЊСЃРєРёР№ РјР°СЃСЃРёРІ
+        const_cast<Array&>(parent_container->AsArray()).push_back(Dict());
+        // РџРѕР»СѓС‡Р°РµРј СѓРєР°Р·Р°С‚РµР»СЊ РЅР° РґРѕР±Р°РІР»РµРЅРЅС‹Р№ РЅРѕРІС‹Р№ СѓР·РµР»
+        Node* node = &const_cast<Array&>(parent_container->AsArray()).back();
+        // РЎРѕС…СЂР°РЅСЏРµРј СѓРєР°Р·Р°С‚РµР»СЊ РІ СЃС‚РµРєРµ
+        nodes_stack_.push_back(node);
+    }
+    else if (parent_container->IsDict())
+    {
+        if (key_opened_)
         {
-            root_ = Array();                     // Создаем пустой массив в root_
-            nodes_stack_.emplace_back(&root_);   // Запомнаем &root_ в качестве начала стека
-            return ArrayItemContext{ *this };
-        }
+            // Р РѕРґРёС‚РµР»СЊСЃРєРёР№ РєРѕРЅС‚РµР№РЅРµСЂ - СЃР»РѕРІР°СЂСЊ Рё РєР»СЋС‡ РЅРµ РїСѓСЃС‚. РЈ РЅР°СЃ СЃР»СѓС‡Р°Р№ РЅРѕРІРѕРіРѕ СЃР»РѕРІР°СЂСЏ РІ РєР°С‡РµСЃС‚РІРµ Р·РЅР°С‡РµРЅРёСЏ РїР°СЂС‹ СЂРѕРґРёС‚РµР»СЊСЃРєРѕРіРѕ СЃР»РѕРІР°СЂСЏ
 
-        // Возможная ошибка - UB при пустом стеке и ненулевом root_
-        // Это возможно при ошибочном вызове Start*() после Value()
-        if (nodes_stack_.empty())
-        {
-            throw std::logic_error("StartArray() called at wrong order.");
-        }
-
-        // Это не первый элемент документа.
-        // Проверяем каким был предыдущий (родительский) контейнер
-        Node* parent_container = nodes_stack_.back();
-        if (parent_container->IsArray())
-        {
-            // Родительский контейнер - массив. У нас случай нового массива внутри массива
-
-            // Добавляем новый пустой массив в родительский массив
-            const_cast<Array&>(parent_container->AsArray()).push_back(Array());
-            // Получаем указатель на добавленный новый узел
-            Node* node = &const_cast<Array&>(parent_container->AsArray()).back();
-            // Сохраняем указатель в стеке
+            // Р”РѕР±Р°РІР»СЏРµРј РЅРѕРІС‹Р№ РїСѓСЃС‚РѕР№ СЃР»РѕРІР°СЂСЊ РІ СЂРѕРґРёС‚РµР»СЊСЃРєРёР№ СЃР»РѕРІР°СЂСЊ РґР»СЏ РєР»СЋС‡Р° key_
+            const_cast<Dict&>(parent_container->AsDict())[key_] = Dict();
+            // РџРѕР»СѓС‡Р°РµРј СѓРєР°Р·Р°С‚РµР»СЊ РЅР° РґРѕР±Р°РІР»РµРЅРЅС‹Р№ РЅРѕРІС‹Р№ СѓР·РµР»
+            Node* node = &const_cast<Dict&>(parent_container->AsDict()).at(key_);
+            // РЎРѕС…СЂР°РЅСЏРµРј СѓРєР°Р·Р°С‚РµР»СЊ РІ СЃС‚РµРєРµ
             nodes_stack_.push_back(node);
-        }
-        else if (parent_container->IsDict())
-        {
-            if (key_opened_)
-            {
-                // Родительский контейнер - словарь и ключ не пуст. У нас случай нового массива в качестве значения пары родительского словаря
-
-                // Добавляем новый пустой массив в родительский словарь для ключа key_
-                const_cast<Dict&>(parent_container->AsDict())[key_] = Array();
-                // Получаем указатель на добавленный новый узел
-                Node* node = &const_cast<Dict&>(parent_container->AsDict()).at(key_);
-                // Сохраняем указатель в стеке
-                nodes_stack_.push_back(node);
-                // Ключ получил соответствующее ему значение.
-                key_.clear();
-                key_opened_ = false;
-            }
-            else
-            {
-                throw std::logic_error("StartArray() called for Key element, not for Value.");
-            }
+            // РљР»СЋС‡ РїРѕР»СѓС‡РёР» СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РµРµ РµРјСѓ Р·РЅР°С‡РµРЅРёРµ.
+            key_.clear();
+            key_opened_ = false;
         }
         else
         {
-            throw std::logic_error("StartArray() called at wrong order.");
+            throw std::logic_error("StartDict() called for Key element, not for Value as intended.");
         }
+    }
+    else
+    {
+        throw std::logic_error("StartDict() called not for empty document, nor for Array element / Dict Value element.");
+    }
 
+
+    return DictItemContext{ *this };
+}
+
+/*
+ РќР°С‡РёРЅР°РµС‚ РѕРїСЂРµРґРµР»РµРЅРёРµ СЃР»РѕР¶РЅРѕРіРѕ Р·РЅР°С‡РµРЅРёСЏ-РјР°СЃСЃРёРІР°. Р’С‹Р·С‹РІР°РµС‚СЃСЏ РІ С‚РµС… Р¶Рµ РєРѕРЅС‚РµРєСЃС‚Р°С…,
+ С‡С‚Рѕ Рё Value. РЎР»РµРґСѓСЋС‰РёРј РІС‹Р·РѕРІРѕРј РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ EndArray РёР»Рё Р»СЋР±РѕР№,
+ Р·Р°РґР°СЋС‰РёР№ РЅРѕРІРѕРµ Р·РЅР°С‡РµРЅРёРµ: Value, StartDict РёР»Рё StartArray.
+*/
+ArrayItemContext Builder::StartArray()
+{
+    /*
+    Р•СЃР»Рё StartArray, С‚Рѕ РІР°СЂРёР°РЅС‚Р° 3:
+    1. Р­С‚РѕС‚ РјР°СЃСЃРёРІ РїРµСЂРІС‹Р№ Рё РєРѕСЂРЅРµРІРѕР№ СЌР»РµРјРµРЅС‚, С‚РѕРіРґР° РЅСѓР¶РЅРѕ РІ root_ РїРѕР»РѕР¶РёС‚СЊ РЅРѕРґСѓ СЃ
+       РїСѓСЃС‚С‹Рј РјР°СЃСЃРёРІРѕРј Рё Р°РґСЂРµСЃ СЌС‚РѕР№ РЅРѕРґС‹ РґРѕР±Р°РІРёС‚СЊ РІ СЃС‚РµРє.
+    2. РџСЂРµРґС‹РґСѓС‰РёР№ СЌР»РµРјРµРЅС‚ - РјР°СЃСЃРёРІ (nodes_stack_.back()->IsArray()). РўРѕРіРґР° РЅСѓР¶РЅРѕ
+       РїРѕР»СѓС‡РёС‚СЊ СЃСЃС‹Р»РєСѓ РЅР° РїРѕСЃР»РµРґРЅРёР№ СЌР»РµРјРµРЅС‚ nodes_stack_ (РЅР°РїСЂРёРјРµСЂ, С‡РµСЂРµР· get<Array>
+       Рё РЅРµРєРѕРЅСЃС‚Р°РЅС‚РЅС‹Р№ GetValue()), РґРѕР±Р°РІРёС‚СЊ РІ РјР°СЃСЃРёРІ РїРѕ СЌС‚РѕР№ СЃСЃС‹Р»РєРµ РЅРѕРґСѓ СЃ РїСѓСЃС‚С‹Рј
+       РјР°СЃСЃРёРІРѕРј Рё РїРѕР»РѕР¶РёС‚СЊ РІ СЃС‚РµРє Р°РґСЂРµСЃ С‚РѕР»СЊРєРѕ С‡С‚Рѕ РґРѕР±Р°РІР»РµРЅРЅРѕР№ РЅРѕРґС‹.
+    3. РџСЂРµРґС‹РґСѓС‰РёР№ СЌР»РµРјРµРЅС‚ - СѓРєР°Р·Р°С‚РµР»СЊ РЅР° Р·РЅР°С‡РµРЅРёРµ СЃР»РѕРІР°СЂСЏ (РїСЂРѕРІРµСЂРєР° nodes_stack_back()->IsNull()).
+       РўРѕРіРґР° РїСЂРѕСЃС‚Рѕ РІ РїРѕСЃР»РµРґРЅРёР№ СЌР»РµРјРµРЅС‚ СЃС‚РµРєР° Р·Р°РїРёСЃС‹РІР°РµРј РЅРѕРґСѓ СЃ РїСѓСЃС‚С‹Рј РјР°СЃСЃРёРІРѕРј.
+    */
+
+    // Р•СЃР»Рё СЌС‚Рѕ РїРµСЂРІС‹Р№ СЌР»РµРјРµРЅС‚ РІ РґРѕРєСѓРјРµРЅС‚Рµ (root РµС‰Рµ РїСѓСЃС‚)
+    if (root_ == nullptr)
+    {
+        root_ = Array();                     // РЎРѕР·РґР°РµРј РїСѓСЃС‚РѕР№ РјР°СЃСЃРёРІ РІ root_
+        nodes_stack_.emplace_back(&root_);   // Р—Р°РїРѕРјРЅР°РµРј &root_ РІ РєР°С‡РµСЃС‚РІРµ РЅР°С‡Р°Р»Р° СЃС‚РµРєР°
         return ArrayItemContext{ *this };
     }
 
-    /*
-    Завершает определение сложного значения-словаря.
-    Последним незавершённым вызовом Start* должен быть StartDict.
-    */
-    BaseContext Builder::EndDict()
+    // Р’РѕР·РјРѕР¶РЅР°СЏ РѕС€РёР±РєР° - UB РїСЂРё РїСѓСЃС‚РѕРј СЃС‚РµРєРµ Рё РЅРµРЅСѓР»РµРІРѕРј root_
+    // Р­С‚Рѕ РІРѕР·РјРѕР¶РЅРѕ РїСЂРё РѕС€РёР±РѕС‡РЅРѕРј РІС‹Р·РѕРІРµ Start*() РїРѕСЃР»Рµ Value()
+    if (nodes_stack_.empty())
     {
+        throw std::logic_error("StartArray() called at wrong order.");
+    }
 
-        // Стек должен быть НЕ пуст && текущий контейнер - словарь && ключ словаря пуст (пара была создана)
-        if ((!nodes_stack_.empty()) && (nodes_stack_.back()->IsDict()) && (!key_opened_))
+    // Р­С‚Рѕ РЅРµ РїРµСЂРІС‹Р№ СЌР»РµРјРµРЅС‚ РґРѕРєСѓРјРµРЅС‚Р°.
+    // РџСЂРѕРІРµСЂСЏРµРј РєР°РєРёРј Р±С‹Р» РїСЂРµРґС‹РґСѓС‰РёР№ (СЂРѕРґРёС‚РµР»СЊСЃРєРёР№) РєРѕРЅС‚РµР№РЅРµСЂ
+    Node* parent_container = nodes_stack_.back();
+    if (parent_container->IsArray())
+    {
+        // Р РѕРґРёС‚РµР»СЊСЃРєРёР№ РєРѕРЅС‚РµР№РЅРµСЂ - РјР°СЃСЃРёРІ. РЈ РЅР°СЃ СЃР»СѓС‡Р°Р№ РЅРѕРІРѕРіРѕ РјР°СЃСЃРёРІР° РІРЅСѓС‚СЂРё РјР°СЃСЃРёРІР°
+
+        // Р”РѕР±Р°РІР»СЏРµРј РЅРѕРІС‹Р№ РїСѓСЃС‚РѕР№ РјР°СЃСЃРёРІ РІ СЂРѕРґРёС‚РµР»СЊСЃРєРёР№ РјР°СЃСЃРёРІ
+        const_cast<Array&>(parent_container->AsArray()).push_back(Array());
+        // РџРѕР»СѓС‡Р°РµРј СѓРєР°Р·Р°С‚РµР»СЊ РЅР° РґРѕР±Р°РІР»РµРЅРЅС‹Р№ РЅРѕРІС‹Р№ СѓР·РµР»
+        Node* node = &const_cast<Array&>(parent_container->AsArray()).back();
+        // РЎРѕС…СЂР°РЅСЏРµРј СѓРєР°Р·Р°С‚РµР»СЊ РІ СЃС‚РµРєРµ
+        nodes_stack_.push_back(node);
+    }
+    else if (parent_container->IsDict())
+    {
+        if (key_opened_)
         {
-            // Удаляем последний элемент стека, -1 уровень вложенности
-            nodes_stack_.pop_back();
+            // Р РѕРґРёС‚РµР»СЊСЃРєРёР№ РєРѕРЅС‚РµР№РЅРµСЂ - СЃР»РѕРІР°СЂСЊ Рё РєР»СЋС‡ РЅРµ РїСѓСЃС‚. РЈ РЅР°СЃ СЃР»СѓС‡Р°Р№ РЅРѕРІРѕРіРѕ РјР°СЃСЃРёРІР° РІ РєР°С‡РµСЃС‚РІРµ Р·РЅР°С‡РµРЅРёСЏ РїР°СЂС‹ СЂРѕРґРёС‚РµР»СЊСЃРєРѕРіРѕ СЃР»РѕРІР°СЂСЏ
+
+            // Р”РѕР±Р°РІР»СЏРµРј РЅРѕРІС‹Р№ РїСѓСЃС‚РѕР№ РјР°СЃСЃРёРІ РІ СЂРѕРґРёС‚РµР»СЊСЃРєРёР№ СЃР»РѕРІР°СЂСЊ РґР»СЏ РєР»СЋС‡Р° key_
+            const_cast<Dict&>(parent_container->AsDict())[key_] = Array();
+            // РџРѕР»СѓС‡Р°РµРј СѓРєР°Р·Р°С‚РµР»СЊ РЅР° РґРѕР±Р°РІР»РµРЅРЅС‹Р№ РЅРѕРІС‹Р№ СѓР·РµР»
+            Node* node = &const_cast<Dict&>(parent_container->AsDict()).at(key_);
+            // РЎРѕС…СЂР°РЅСЏРµРј СѓРєР°Р·Р°С‚РµР»СЊ РІ СЃС‚РµРєРµ
+            nodes_stack_.push_back(node);
+            // РљР»СЋС‡ РїРѕР»СѓС‡РёР» СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РµРµ РµРјСѓ Р·РЅР°С‡РµРЅРёРµ.
+            key_.clear();
+            key_opened_ = false;
         }
         else
         {
-            // Все остальные случаи невалидны
-            throw std::logic_error("EndDict() called at wrong order.");
+            throw std::logic_error("StartArray() called for Key element, not for Value.");
         }
-
-        return BaseContext{ *this };
     }
-
-    /*
-    Завершает определение сложного значения-массива.
-    Последним незавершённым вызовом Start* должен быть StartArray
-    */
-    BaseContext Builder::EndArray()
+    else
     {
-
-        // Стек должен быть НЕ пуст && текущий контейнер - массив
-        if ((!nodes_stack_.empty()) && (nodes_stack_.back()->IsArray()))
-        {
-            // Удаляем последний элемент стека, -1 уровень вложенности
-            nodes_stack_.pop_back();
-        }
-        else
-        {
-            // Все остальные случаи невалидны
-            throw std::logic_error("EndArray() called at wrong order.");
-        }
-
-        return BaseContext{ *this };
+        throw std::logic_error("StartArray() called at wrong order.");
     }
 
-    json::Node Builder::Build()
+    return ArrayItemContext{ *this };
+}
+
+/*
+Р—Р°РІРµСЂС€Р°РµС‚ РѕРїСЂРµРґРµР»РµРЅРёРµ СЃР»РѕР¶РЅРѕРіРѕ Р·РЅР°С‡РµРЅРёСЏ-СЃР»РѕРІР°СЂСЏ.
+РџРѕСЃР»РµРґРЅРёРј РЅРµР·Р°РІРµСЂС€С‘РЅРЅС‹Рј РІС‹Р·РѕРІРѕРј Start* РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ StartDict.
+*/
+BaseContext Builder::EndDict()
+{
+
+    // РЎС‚РµРє РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РќР• РїСѓСЃС‚ && С‚РµРєСѓС‰РёР№ РєРѕРЅС‚РµР№РЅРµСЂ - СЃР»РѕРІР°СЂСЊ && РєР»СЋС‡ СЃР»РѕРІР°СЂСЏ РїСѓСЃС‚ (РїР°СЂР° Р±С‹Р»Р° СЃРѕР·РґР°РЅР°)
+    if ((!nodes_stack_.empty()) && (nodes_stack_.back()->IsDict()) && (!key_opened_))
     {
-
-        if (root_ == nullptr)
-        {
-            // Документ пуст
-            throw std::logic_error("Build() called for empty document.");
-        }
-        else if (!nodes_stack_.empty())
-        {
-            // Стек еще не пуст (документ не построен до конца)
-            throw std::logic_error("Build() called for not finished document.");
-        }
-
-        return std::move(root_);
+        // РЈРґР°Р»СЏРµРј РїРѕСЃР»РµРґРЅРёР№ СЌР»РµРјРµРЅС‚ СЃС‚РµРєР°, -1 СѓСЂРѕРІРµРЅСЊ РІР»РѕР¶РµРЅРЅРѕСЃС‚Рё
+        nodes_stack_.pop_back();
+    }
+    else
+    {
+        // Р’СЃРµ РѕСЃС‚Р°Р»СЊРЅС‹Рµ СЃР»СѓС‡Р°Рё РЅРµРІР°Р»РёРґРЅС‹
+        throw std::logic_error("EndDict() called at wrong order.");
     }
 
+    return BaseContext{ *this };
+}
 
+/*
+Р—Р°РІРµСЂС€Р°РµС‚ РѕРїСЂРµРґРµР»РµРЅРёРµ СЃР»РѕР¶РЅРѕРіРѕ Р·РЅР°С‡РµРЅРёСЏ-РјР°СЃСЃРёРІР°.
+РџРѕСЃР»РµРґРЅРёРј РЅРµР·Р°РІРµСЂС€С‘РЅРЅС‹Рј РІС‹Р·РѕРІРѕРј Start* РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ StartArray
+*/
+BaseContext Builder::EndArray()
+{
 
-    // КОНТЕКСТЫ ДЛЯ ВОЗВРАТА ИЗ МЕТОДОВ
-
-    KeyContext BaseContext::Key(std::string str)
+    // РЎС‚РµРє РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РќР• РїСѓСЃС‚ && С‚РµРєСѓС‰РёР№ РєРѕРЅС‚РµР№РЅРµСЂ - РјР°СЃСЃРёРІ
+    if ((!nodes_stack_.empty()) && (nodes_stack_.back()->IsArray()))
     {
-        return builder_.Key(std::move(str));
+        // РЈРґР°Р»СЏРµРј РїРѕСЃР»РµРґРЅРёР№ СЌР»РµРјРµРЅС‚ СЃС‚РµРєР°, -1 СѓСЂРѕРІРµРЅСЊ РІР»РѕР¶РµРЅРЅРѕСЃС‚Рё
+        nodes_stack_.pop_back();
     }
-    BaseContext BaseContext::Value(Node::Value val)
+    else
     {
-        return builder_.Value(val);
-    }
-    DictItemContext BaseContext::StartDict()
-    {
-        return builder_.StartDict();
-    }
-    ArrayItemContext BaseContext::StartArray()
-    {
-        return builder_.StartArray();
-    }
-    BaseContext BaseContext::EndDict()
-    {
-        return builder_.EndDict();
-    }
-    BaseContext BaseContext::EndArray()
-    {
-        return builder_.EndArray();
-    }
-    json::Node BaseContext::Build()
-    {
-        return builder_.Build();
+        // Р’СЃРµ РѕСЃС‚Р°Р»СЊРЅС‹Рµ СЃР»СѓС‡Р°Рё РЅРµРІР°Р»РёРґРЅС‹
+        throw std::logic_error("EndArray() called at wrong order.");
     }
 
+    return BaseContext{ *this };
+}
 
-    KeyValueContext KeyContext::Value(Node::Value val)
+json::Node Builder::Build()
+{
+
+    if (root_ == nullptr)
     {
-        return BaseContext::Value(std::move(val));
+        // Р”РѕРєСѓРјРµРЅС‚ РїСѓСЃС‚
+        throw std::logic_error("Build() called for empty document.");
     }
-    ArrayItemContext KeyContext::StartArray()
+    else if (!nodes_stack_.empty())
     {
-        return BaseContext::StartArray();
+        // РЎС‚РµРє РµС‰Рµ РЅРµ РїСѓСЃС‚ (РґРѕРєСѓРјРµРЅС‚ РЅРµ РїРѕСЃС‚СЂРѕРµРЅ РґРѕ РєРѕРЅС†Р°)
+        throw std::logic_error("Build() called for not finished document.");
     }
-    DictItemContext KeyContext::StartDict()
-    {
-        return BaseContext::StartDict();
-    }
+
+    return std::move(root_);
+}
 
 
 
-    ArrayValueContext ArrayItemContext::Value(Node::Value val)
-    {
-        return BaseContext::Value(std::move(val));
-    }
-    DictItemContext ArrayItemContext::StartDict()
-    {
-        return BaseContext::StartDict();
-    }
-    ArrayItemContext ArrayItemContext::StartArray()
-    {
-        return BaseContext::StartArray();
-    }
+// РљРћРќРўР•РљРЎРўР« Р”Р›РЇ Р’РћР—Р’Р РђРўРђ РР— РњР•РўРћР”РћР’
+
+KeyContext BaseContext::Key(std::string str)
+{
+    return builder_.Key(std::move(str));
+}
+BaseContext BaseContext::Value(Node::Value val)
+{
+    return builder_.Value(val);
+}
+DictItemContext BaseContext::StartDict()
+{
+    return builder_.StartDict();
+}
+ArrayItemContext BaseContext::StartArray()
+{
+    return builder_.StartArray();
+}
+BaseContext BaseContext::EndDict()
+{
+    return builder_.EndDict();
+}
+BaseContext BaseContext::EndArray()
+{
+    return builder_.EndArray();
+}
+json::Node BaseContext::Build()
+{
+    return builder_.Build();
+}
+
+
+KeyValueContext KeyContext::Value(Node::Value val)
+{
+    return BaseContext::Value(std::move(val));
+}
+ArrayItemContext KeyContext::StartArray()
+{
+    return BaseContext::StartArray();
+}
+DictItemContext KeyContext::StartDict()
+{
+    return BaseContext::StartDict();
+}
 
 
 
-    KeyContext DictItemContext::Key(std::string key)
-    {
-        return BaseContext::Key(key);
-    }
+ArrayValueContext ArrayItemContext::Value(Node::Value val)
+{
+    return BaseContext::Value(std::move(val));
+}
+DictItemContext ArrayItemContext::StartDict()
+{
+    return BaseContext::StartDict();
+}
+ArrayItemContext ArrayItemContext::StartArray()
+{
+    return BaseContext::StartArray();
+}
 
 
-    KeyContext KeyValueContext::Key(std::string key)
-    {
-        return BaseContext::Key(key);
-    }
+
+KeyContext DictItemContext::Key(std::string key)
+{
+    return BaseContext::Key(key);
+}
 
 
-    ArrayValueContext ArrayValueContext::Value(Node::Value val)
-    {
-        return BaseContext::Value(std::move(val));
-    }
-    DictItemContext ArrayValueContext::StartDict()
-    {
-        return BaseContext::StartDict();
-    }
-    ArrayItemContext ArrayValueContext::StartArray()
-    {
-        return BaseContext::StartArray();
-    }
-    BaseContext ArrayValueContext::EndArray()
-    {
-        return BaseContext::EndArray();
-    }
+KeyContext KeyValueContext::Key(std::string key)
+{
+    return BaseContext::Key(key);
+}
+
+
+ArrayValueContext ArrayValueContext::Value(Node::Value val)
+{
+    return BaseContext::Value(std::move(val));
+}
+DictItemContext ArrayValueContext::StartDict()
+{
+    return BaseContext::StartDict();
+}
+ArrayItemContext ArrayValueContext::StartArray()
+{
+    return BaseContext::StartArray();
+}
+BaseContext ArrayValueContext::EndArray()
+{
+    return BaseContext::EndArray();
+}
 
 }
